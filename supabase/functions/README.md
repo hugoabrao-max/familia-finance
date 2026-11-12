@@ -7,6 +7,5 @@ Exportado em 12/11/2026 via `get_edge_function` (somente leitura). Ao republicar
 | `pluggy-sync` | 8 (código v1.3.4, 12/11/2026) | false | ACTIVE | `index.ts` | Ingestão Pluggy (contas, `/v2/transactions`, faturas, investimentos); protegida por header `x-sync-token` = `app_settings.sync_token` (ou Bearer service role); sem `?token=` na URL; comparação em tempo constante; não grava `bill_closing_date` (calculado no pos-sync) |
 | `backup-export` | 3 (código v1.2, 12/11/2026) | false | ACTIVE | `index.ts` | Exportação JSON (GET), `/report` e `/restore` (POST); protegida por `x-backup-token` = `app_settings.backup_token`; comparação em tempo constante |
 | `member-invite` | 1 | true | ACTIVE | `index.ts` | Responsável (owner/admin) gera link de acesso/redefinição de senha para um membro |
-| `owner-recovery` | 2 | true | ACTIVE | `index.ts` | Redefinição de senha avulsa (usada uma vez em 06/11/2026); hoje responde 410 — candidata a remoção |
-| `pluggy-diag` | 7 | false | ACTIVE | `index.ts` | **Desativada 12/11/2026** (responde 410). A v6 foi usada uma vez para remover na Pluggy o item antigo 22255fcb (ver git). Apagar pelo painel do Supabase |
-| `app` | 2 | false | ACTIVE | `index.ts` | **Desativada 12/11/2026** (responde 410; código v0.1 no histórico do git). Remover pelo painel do Supabase |
+
+Apagadas pelo Hugo no painel do Supabase em 12/11/2026: `app`, `pluggy-diag`, `owner-recovery` (código no histórico do git).

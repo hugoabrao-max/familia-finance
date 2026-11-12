@@ -3,5 +3,5 @@ Ingestão: Edge Function pluggy-sync (Deno) → Pluggy /items, /accounts, /v2/tr
 Agendamento: pg_cron 'pluggy-sync-diario' (15 1,3,10,22 * * * UTC) via pg_net com x-sync-token de app_settings; 'pos-sync' (25 1,3,10,22 * * * UTC) roda post_sync() (reconcile_all, detect_duplicates, refresh_card_cycles, assign_card_competence, classificação).
 Backup: Railway 'backup' diário 09:00 UTC → Edge backup-export → bucket S3 Railway; 'restore-check' restaura em esquema restore_test e compara.
 Código: github.com/hugoabrao-max/familia-finance (privado).
-Frontend: Railway Function 'app' (Bun, arquivo único) serve SPA estática; navegador fala direto com Supabase (anon key + RLS). Supabase Edge Function 'app' existe mas é inútil: a plataforma bloqueia HTML no domínio supabase.co.
+Frontend: Railway Function 'app' (Bun, arquivo único) serve SPA estática; navegador fala direto com Supabase (anon key + RLS). Edge Functions do Supabase não servem HTML (domínio supabase.co bloqueia); a função 'app' que tentava isso foi apagada em 12/11/2026.
 Decisões: valores numeric(14,2); sinal gerencial DEBIT negativo / CREDIT positivo; datas como a Pluggy entrega (aaaa-mm-dd); competência do cartão = mês do fechamento.

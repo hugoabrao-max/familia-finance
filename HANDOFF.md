@@ -65,9 +65,9 @@ Railway "restore-check" (on deploy) ─► restaura em esquema restore_test e co
 | `pluggy-sync` | v8 (código v1.3.4: token só por header, comparação em tempo constante, não grava `bill_closing_date`) | false (protegida por `x-sync-token` de `app_settings`) | Ingestão Pluggy por cursor; casamento de contas/transações em reautorização; moeda estrangeira em BRL | Manter |
 | `backup-export` | v3 (código v1.2) | false (protegida por `x-backup-token`) | `GET` exporta todas as tabelas `public` em JSON; `POST /report` grava `backup_runs`; `POST /restore` chama `restore_backup_to_test()` | Manter |
 | `member-invite` | v1 | true | Owner/admin cria usuário no Auth e gera link `#acesso=<token_hash>` (1 h, uso único), auditado | Manter |
-| `owner-recovery` | v2 | true | Redefinição pontual da senha do Hugo em 06/11 — **desativada (responde 410)** | Remover |
-| `pluggy-diag` | v7 | false | Desativada 12/11/2026 (responde 410); v6 removeu o item antigo na Pluggy | Apagar no painel do Supabase |
-| `app` | v2 | false | Desativada 12/11/2026 (responde 410) | Apagar no painel do Supabase |
+| `owner-recovery` | — | — | Redefinição pontual da senha do Hugo em 06/11 | **Apagada 12/11/2026** |
+| `pluggy-diag` | — | — | Diagnóstico temporário; v6 removeu o item antigo na Pluggy | **Apagada 12/11/2026** |
+| `app` | — | — | Tentativa de servir HTML pelo Supabase | **Apagada 12/11/2026** |
 
 **Secrets (Edge Function Secrets):** `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`. Tokens internos (`sync_token`, `backup_token`) e `pluggy_item_ids` ficam em `app_settings` (sem política RLS → só service_role).
 
@@ -237,7 +237,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 | P2 | Fixos recorrentes sem compromisso formal: conferir cobertura no comprometido do mês |
 | P2 | "Seguro (parcelado)" também casa com seguro incêndio — conferir regra |
 | P2 | `investment_positions` cresce 1 linha por sync — política de retenção |
-| P2 | Edge Functions `app`, `pluggy-diag` e `owner-recovery` desativadas 12/11 — **Hugo apagar no painel do Supabase** |
+| P2 | ~~Remover Edge Functions `app`, `pluggy-diag`, `owner-recovery`~~ — apagadas pelo Hugo em 12/11 |
 | P3 | Modularizar o frontend (hoje 92 KB em um template string) — só se não quebrar o fluxo de deploy |
 
 ---
