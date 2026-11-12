@@ -1,9 +1,9 @@
-# Estado real — 12/11/2026 (frontend v0.14.0 · banco migração 0028)
+# Estado real — 12/11/2026 (frontend v0.14.0 · banco migração 0029)
 Status: implementado → testado → validado (documentos reais) → publicado. Nada é "resolvido" só porque compila.
 
 ## Produção
 - Frontend v0.14.0 publicado no Railway (serviço app) em 07/11; código conferido idêntico ao repositório.
-- Banco: 32 migrações (0001–0028; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
+- Banco: 33 migrações (0001–0029; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
 - Sincronização: pg_cron 4×/dia (15 1,3,10,22 UTC) + pos-sync 10 min depois; últimas execuções SUCCESS.
 - Backup diário 09:00 UTC → bucket Railway, hash por releitura; último SUCCESS 12/11 09:03 UTC (1,42 MB). restore-check semanal (domingo 10:00 UTC) desde 12/11, comparando o restaurado com o próprio backup (0028).
 - Dados: 3.550 lançamentos (05/11/2025 → 11/11/2026); 638 regras; 49 categorias; 11 pendentes (7 out/26, 4 nov/26).
@@ -20,7 +20,7 @@ github.com/hugoabrao-max/familia-finance (privado). Conteúdo exportado da produ
 
 ## Achados de segurança (12/11, revisão do código exportado — nada alterado)
 - (corrigido 12/11) pluggy-sync v1.3.3 só aceita o token por header e compara em tempo constante; backup-export v1.2 idem; sync_token rotacionado. pluggy-diag ainda usa === (remoção pendente).
-- handle_new_auth_user: se nenhum membro tiver auth_user_id, o primeiro cadastro vira owner com qualquer e-mail. Hoje sem risco (ambos vinculados); corrigir exigindo e-mail.
+- (corrigido 12/11, 0029) handle_new_auth_user só vincula login pelo e-mail cadastrado.
 - Funções SECURITY DEFINER: todas com search_path=public. anon executa só utilitárias inofensivas.
 
 ## Próxima ação

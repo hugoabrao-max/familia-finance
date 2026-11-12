@@ -1,6 +1,6 @@
 # Família Finance AI — Relatório de handoff para o Claude Code
 
-**Data do levantamento:** 12/11/2026 · **Responsável:** Hugo Veras Abrão (owner) · **Versão em produção:** frontend v0.14.0 / banco migração 0028
+**Data do levantamento:** 12/11/2026 · **Responsável:** Hugo Veras Abrão (owner) · **Versão em produção:** frontend v0.14.0 / banco migração 0029
 **Fonte deste relatório:** estado lido ao vivo no Supabase `familia-finance` e no Railway `familia-finance` em 12/11/2026, mais os 12 documentos de continuidade da tabela `project_docs` e o histórico do projeto.
 
 > Convenção de status usada em todo o documento (exigência do Hugo): **implementado** (código existe) → **testado** (teste automatizado/simulado) → **validado** (conferido com documentos reais) → **publicado** (em produção). Nada é "resolvido" só porque compila.

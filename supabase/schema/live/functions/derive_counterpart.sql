@@ -2,6 +2,7 @@ CREATE OR REPLACE FUNCTION public.derive_counterpart(p_description text, p_payme
  RETURNS text
  LANGUAGE sql
  IMMUTABLE
+ SET search_path TO ''
 AS $function$
   select coalesce(
     nullif(p_payment->'payer'->>'name',''),
