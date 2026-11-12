@@ -3,7 +3,7 @@
 
 const SUPABASE_URL = "https://hrsinekxrfiphlhpoewp.supabase.co";
 const ANON_KEY = "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
-const APP_VERSION = "0.19.1";
+const APP_VERSION = "0.19.2";
 
 const MANIFEST = JSON.stringify({
   name: "Família Finance AI", short_name: "Finanças", start_url: "/", scope: "/",
@@ -667,7 +667,7 @@ async function renderFixas(){const _rt=RT;
    Object.entries(grupos).sort((a,b)=>b[1].reduce((s,f)=>s+Number(f.valor_atual||0),0)-a[1].reduce((s,f)=>s+Number(f.valor_atual||0),0)).map(([g,fs])=>'<h2>'+esc(g)+' · '+brl0(fs.reduce((s,f)=>s+Number(f.valor_atual||0),0))+'</h2><div class="list">'+fs.map(linha).join('')+'</div>').join('')+
    ((com||[]).length?'<h2>Financiamentos e parcelamentos</h2><p class="small muted" style="margin-top:-4px">Prazo, parcelas e saldo devedor. Toque para atualizar.</p><div class="list">'+(com||[]).map((c,i)=>{const naLista=L.some(f=>f.is_active&&(f.commitment_id===c.id||(c.kind==='financiamento'&&!!c.category_id&&f.category_id===c.category_id)));return '<div class="item" onclick="editCom('+i+')"><div class="d"><div class="t">'+esc(c.name)+'</div><div class="s" style="white-space:normal">'+(c.end_date?'até '+fmtD(c.end_date)+'/'+c.end_date.slice(0,4):'sem prazo informado')+(c.installments_total?' · parcela '+c.installments_paid+' de '+c.installments_total:'')+(c.kind==='financiamento'?' · saldo devedor '+(c.outstanding_balance!=null?brl0(c.outstanding_balance):'<span class="pill warn">informar</span>'):'')+' · '+(naLista?'na lista acima':'<span class="pill warn">fora das contas fixas</span>')+'</div></div><div class="a num">'+brl0(c.monthly_amount)+'</div></div>'}).join('')+'</div>'+((com||[]).some(c=>!L.some(f=>f.commitment_id===c.id))?'<p class="small muted">“Fora das contas fixas” = a parcela não entra no total acima nem no comprometido do mês. Para incluir, cadastre como conta fixa.</p>':''):'')+
    (inativos.length?'<h2>Encerradas ou desativadas</h2><div class="list">'+inativos.map(linha).join('')+'</div>':'')+
-   '<p class="small muted">“Sugerido” = identificado pelos pagamentos de mai–out/26; confira nome e valor. “Último pago” aparece quando o pagamento do mês anterior diferiu mais de 5% do valor cadastrado.</p></div>';
+   '<p class="small muted">'+(L.some(f=>f.source==='sugerido')?'“Sugerido” = identificado pelos pagamentos de mai–out/26; confira nome e valor. ':'')+'“Último pago” aparece quando o pagamento do mês anterior diferiu mais de 5% do valor cadastrado.</p></div>';
 }
 window.editFixa=async(i)=>{const f=i>=0?window._fe[i]:{name:'',category_id:'',channel:'conta',due_day:'',end_month:'',is_active:true,notes:'',match_pattern:''};const hoje=mesAtual();
   let hist=[];if(i>=0){const {data}=await sb.from('fixed_expense_values').select('*').eq('fixed_expense_id',f.id).order('valid_from',{ascending:false});hist=data||[];}
