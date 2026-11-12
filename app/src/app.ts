@@ -3,7 +3,7 @@
 
 const SUPABASE_URL = "https://hrsinekxrfiphlhpoewp.supabase.co";
 const ANON_KEY = "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
-const APP_VERSION = "0.19.0";
+const APP_VERSION = "0.19.1";
 
 const MANIFEST = JSON.stringify({
   name: "Família Finance AI", short_name: "Finanças", start_url: "/", scope: "/",
@@ -307,9 +307,11 @@ function chart(cur,prev,dayN){const W=600,H=120,P=6;const max=Math.max(Math.abs(
 
 // ---------- Lançamentos ----------
 const PAGE=100;
+const arvore=(id)=>{const out=[id];for(let i=0;i<out.length;i++)S.cats.forEach(c=>{if(c.parent_id===out[i]&&!out.includes(c.id))out.push(c.id)});return out};
+const raizDe=(id)=>{let c=S.cats.find(x=>x.id===id),n=0;while(c&&c.parent_id&&n++<10)c=S.cats.find(x=>x.id===c.parent_id);return c?c.id:''};
 function lxQuery(f,month,cols,opt){let sel=sb.from('v_tx').select(cols,opt).order('event_date',{ascending:false}).order('id',{ascending:false});
   sel=f.bill?sel.eq('bill_closing_date',f.bill):f.all?sel.gte('month',addM(mesAtual(),-6)+'-01'):sel.eq('month',month+'-01');
-  if(f.holder)sel=sel.eq('holder_name',f.holder);if(f.group)sel=sel.eq('group_id',f.group);if(f.cat)sel=sel.eq('category_id',f.cat);if(f.account)sel=sel.eq('account_id',f.account);
+  if(f.holder)sel=sel.eq('holder_name',f.holder);if(f.group)sel=sel.eq('group_id',f.group);if(f.tree)sel=sel.in('category_id',arvore(f.tree));if(f.cat)sel=sel.eq('category_id',f.cat);if(f.account)sel=sel.eq('account_id',f.account);
   if(f.search){const t=f.search.replace(/[,()%*:"\\\\]/g,' ').replace(/\\s+/g,' ').trim();if(t)sel=sel.or('description.ilike.*'+t+'*,counterpart_name.ilike.*'+t+'*')}
   if(f.pending)sel=sel.eq('review_status','pending');return sel}
 async function lxTotals(f,month){const t={ent:0,sai:0,n:0};for(let from=0;from<20000;from+=1000){const {data,error}=await lxQuery(f,month,'amount').range(from,from+999);if(error)throw error;(data||[]).forEach(r=>{const v=Number(r.amount);if(v>0)t.ent+=v;else t.sai+=v;t.n++});if(!data||data.length<1000)break}return t}
@@ -335,7 +337,7 @@ async function lxSearch(){const L=window._lx,i=$('#fs');if(!L||!i)return;const v
   if(seq!==L.seq||window._lx!==L)return;document.body.classList.remove('loading');window._rows=r.rows;L.total=r.total;L.tt=r.tt;L.n=r.rows.length;lxPaint()}
 async function renderLancamentos(q){const _rt=RT;
   const month=q.get('month')||S.month; S.month=month;
-  const f={all:q.get('all')==='1',bill:q.get('bill')||'',holder:q.get('holder')||'',group:q.get('group')||'',cat:q.get('cat')||'',account:q.get('account')||'',search:q.get('search')||'',pending:q.get('pending')==='1'};
+  const f={all:q.get('all')==='1',bill:q.get('bill')||'',holder:q.get('holder')||'',group:q.get('group')||'',tree:q.get('tree')||'',cat:q.get('cat')||'',account:q.get('account')||'',search:q.get('search')||'',pending:q.get('pending')==='1'};
   const L={f,month,key:JSON.stringify([f,month])};const old=window._lx;
   const n=old&&old.key===L.key?Math.min(1000,Math.max(PAGE,old.n||0)):PAGE;
   const r=await lxFetch(L,n);
@@ -343,13 +345,13 @@ async function renderLancamentos(q){const _rt=RT;
   if(_rt!==RT)return;
   window._rows=r.rows;L.total=r.total;L.tt=r.tt;L.n=r.rows.length;window._lx=L;
   $('#app').innerHTML='<div class="wrap"><div class="row"><h1>Lançamentos</h1>'+monthPicker()+'</div>'+
-   '<div class="filters"><select id="fg"><option value="">Todas as categorias</option>'+groups.map(g=>'<option value="'+g.id+'"'+(g.id===f.group?' selected':'')+'>'+esc(g.name)+'</option>').join('')+'</select>'+
+   '<div class="filters"><select id="fg"><option value="">Todas as categorias</option>'+groups.map(g=>'<option value="'+g.id+'"'+(g.id===(f.tree||(f.group?raizDe(f.group):''))?' selected':'')+'>'+esc(g.name)+'</option>').join('')+'</select>'+
    '<select id="fa"><option value="">Todas as contas</option>'+S.accounts.map(a=>'<option value="'+a.id+'"'+(a.id===f.account?' selected':'')+'>'+esc(a.subtype==='CREDIT_CARD'?'Cartão '+a.number:a.subtype==='SAVINGS_ACCOUNT'?'Poupança':'Conta corrente')+'</option>').join('')+'</select>'+
    '<input class="full" id="fs" type="search" aria-label="Buscar lançamentos" autocomplete="off" placeholder="buscar por descrição ou estabelecimento" value="'+esc(f.search)+'"></div>'+
    (f.all?'<p><span class="pill">Últimos 6 meses</span> <a class="small" href="#lancamentos">limpar</a></p>':'')+(f.bill?'<p><span class="pill">Fatura com fechamento em '+fmtD(f.bill)+'/'+f.bill.slice(0,4)+(f.holder?' · '+esc(f.holder):'')+'</span> <a class="small" href="#lancamentos">limpar</a></p>':'')+
-   (f.cat?'<p><span class="pill">'+esc((S.cats.find(c=>c.id===f.cat)||{}).name||f.cat)+'</span> <a class="small" href="#lancamentos?month='+month+'">limpar</a></p>':'')+(f.pending?'<p><span class="pill warn">Só pendentes</span> <a class="small" href="#lancamentos?month='+month+'">limpar</a></p>':'')+
+   (f.group&&!f.tree?'<p><span class="pill">'+esc((S.cats.find(c=>c.id===f.group)||{}).name||f.group)+'</span> <a class="small" href="#lancamentos?month='+month+'">limpar</a></p>':'')+(f.cat?'<p><span class="pill">'+esc((S.cats.find(c=>c.id===f.cat)||{}).name||f.cat)+'</span> <a class="small" href="#lancamentos?month='+month+'">limpar</a></p>':'')+(f.pending?'<p><span class="pill warn">Só pendentes</span> <a class="small" href="#lancamentos?month='+month+'">limpar</a></p>':'')+
    '<div id="lxtot">'+lxTot()+'</div><div id="lxlist">'+lxList()+'</div></div>';
-  const go=()=>{const p=new URLSearchParams({month:S.month});if($('#fg').value)p.set('group',$('#fg').value);if($('#fa').value)p.set('account',$('#fa').value);if($('#fs').value.trim())p.set('search',$('#fs').value.trim());location.hash='lancamentos?'+p};
+  const go=()=>{const p=new URLSearchParams({month:S.month});if($('#fg').value)p.set('tree',$('#fg').value);if($('#fa').value)p.set('account',$('#fa').value);if($('#fs').value.trim())p.set('search',$('#fs').value.trim());location.hash='lancamentos?'+p};
   bindMonth(go);$('#fg').onchange=go;$('#fa').onchange=go;
   $('#fs').oninput=()=>{clearTimeout(window._lxT);window._lxT=setTimeout(lxSearch,350)};
   $('#fs').onkeydown=(e)=>{if(e.key==='Enter'){clearTimeout(window._lxT);lxSearch();e.target.blur()}};

@@ -7,10 +7,11 @@ const OUT = process.argv[3] || '.';
 const SB = fs.readFileSync(__dirname + '/sb.mjs');
 const reqs = [], rpcs = [];
 const cats = [{ id: 'alimentacao', name: 'Alimentação', parent_id: null, sort: 0, kind: 'despesa' }, { id: 'padaria', name: 'Padaria', parent_id: 'alimentacao', sort: 1, kind: 'despesa' },
-  { id: 'transporte', name: 'Transporte', parent_id: null, sort: 2, kind: 'despesa' }, { id: 'receita', name: 'Receita', parent_id: null, sort: 3, kind: 'receita' }];
+  { id: 'transporte', name: 'Transporte', parent_id: null, sort: 2, kind: 'despesa' }, { id: 'receitas', name: 'Receitas', parent_id: null, sort: 3, kind: 'receita' },
+  { id: 'receitas_fixas', name: 'Receitas fixas', parent_id: 'receitas', sort: 4, kind: 'receita' }, { id: 'receita', name: 'Receita (ATMO)', parent_id: 'receitas_fixas', sort: 5, kind: 'receita' }];
 // 250 lançamentos em nov/26: 2 por dia em média, do dia 12 para trás; 1 receita de 10.000 a cada 50
 const TX = Array.from({ length: 250 }, (_, i) => { const d = 12 - Math.floor(i / 25); const inc = i % 50 === 0;
-  return { id: 'x' + String(1000 - i), event_date: '2026-11-' + String(d).padStart(2, '0'), amount: inc ? 10000 : -(10 + (i % 7)), description: i % 3 ? 'PADARIA PAO BOM' : 'POSTO SHELL',
+  return { group_id: inc ? 'receitas_fixas' : 'alimentacao', id: 'x' + String(1000 - i), event_date: '2026-11-' + String(d).padStart(2, '0'), amount: inc ? 10000 : -(10 + (i % 7)), description: i % 3 ? 'PADARIA PAO BOM' : 'POSTO SHELL',
     counterpart_name: i % 3 ? 'Padaria Pão Bom' : null, category_id: inc ? 'receita' : 'alimentacao', category_name: inc ? 'Receita' : 'Alimentação', review_status: 'reviewed', account_name: 'Conta', source: 'pluggy' }; });
 const PEND = [
   { id: 'p1', event_date: '2026-11-11', amount: -32.5, description: 'PADARIA PAO BOM', counterpart_name: 'Padaria Pão Bom', category_id: null },
@@ -23,7 +24,9 @@ function vtx(u, req) {
   const g = (k) => u.searchParams.get(k);
   let rows = g('review_status') === 'eq.pending' ? PEND : TX;
   const or = g('or'); if (or) { const t = (or.match(/ilike\.\*([^*]*)\*/) || [])[1].toLowerCase(); rows = rows.filter(r => (r.description + ' ' + (r.counterpart_name || '')).toLowerCase().includes(t)); }
-  if (g('category_id')) rows = rows.filter(r => r.category_id === g('category_id').slice(3));
+  const ci = g('category_id'); if (ci && ci.startsWith('eq.')) rows = rows.filter(r => r.category_id === ci.slice(3));
+  if (ci && ci.startsWith('in.')) { const ids = ci.slice(4, -1).split(','); rows = rows.filter(r => ids.includes(r.category_id)); }
+  if (g('group_id')) rows = rows.filter(r => r.group_id === g('group_id').slice(3));
   const off = +(g('offset') || 0), lim = g('limit') ? +g('limit') : rows.length;
   let page = rows.slice(off, off + lim); if (g('select') === 'amount') page = page.map(r => ({ amount: r.amount }));
   const h = { 'access-control-expose-headers': 'content-range', 'access-control-allow-origin': '*', 'content-range': off + '-' + (off + page.length - 1) + '/' + ((req.headers()['prefer'] || '').includes('count=exact') ? rows.length : '*') };
@@ -92,6 +95,14 @@ function vtx(u, req) {
   ok('limpar a busca volta a tudo', nb(await p.locator('#lxtot p').textContent()).startsWith('250 lançamentos'));
   await p.locator('#fs').fill('a,b(c)'); await p.waitForTimeout(500); await idle(p);
   ok('caracteres especiais não quebram a busca', errs.length === 0 && reqs.some(r => decodeURIComponent(r.replace(/\+/g, ' ')).includes('ilike.*a b c*')));
+  // filtro de categoria pega a árvore inteira (Receitas › Receitas fixas › Receita)
+  await p.goto(APP + '#lancamentos?month=2026-11'); await idle(p); reqs.length = 0;
+  await p.selectOption('#fg', 'receitas'); await idle(p);
+  ok('filtro Receitas consulta a árvore (3 níveis)', reqs.some(r => decodeURIComponent(r).includes('category_id=in.(receitas,receitas_fixas,receita)')) && (await p.evaluate(() => location.hash)).includes('tree=receitas'), reqs.filter(r => r.startsWith('v_tx')).map(decodeURIComponent).join(' || ').slice(0, 300));
+  ok('filtro Receitas mostra as 5 receitas', (await p.locator('#lxlist .item').count()) === 5 && nb(await p.locator('#lxtot .card').first().textContent()).includes('R$ 50.000') && nb(await p.locator('#lxtot .card').nth(1).textContent()).includes('R$ 0'));
+  ok('menu continua mostrando Receitas', await p.$eval('#fg', s => s.value) === 'receitas');
+  await p.goto(APP + '#lancamentos?month=2026-11&group=receitas_fixas'); await idle(p);
+  ok('link do Início (grupo) mostra o nome e mantém o critério do card', (await p.locator('.pill', { hasText: 'Receitas fixas' }).count()) === 1 && (await p.locator('#lxlist .item').count()) === 5 && await p.$eval('#fg', s => s.value) === 'receitas');
   ok('sem erros de JS (Lançamentos)', errs.length === 0, errs.join(' | '));
 
   // Revisão em lote
