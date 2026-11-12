@@ -1,8 +1,8 @@
-# Estado real — 12/11/2026 (frontend v0.14.0 · banco migração 0029)
+# Estado real — 12/11/2026 (frontend v0.15.0 · banco migração 0029)
 Status: implementado → testado → validado (documentos reais) → publicado. Nada é "resolvido" só porque compila.
 
 ## Produção
-- Frontend v0.14.0 publicado no Railway (serviço app) em 07/11; código conferido idêntico ao repositório.
+- Frontend v0.15.0 publicado no Railway em 12/11 (Fase 1 do redesenho: voltar devolve o lugar, carregando/erro, fuso de Cuiabá, confirmações, Desfazer); código conferido idêntico ao repositório; /health 0.15.0.
 - Banco: 33 migrações (0001–0029; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
 - Sincronização: pg_cron 4×/dia (15 1,3,10,22 UTC) + pos-sync 10 min depois; últimas execuções SUCCESS.
 - Backup diário 09:00 UTC → bucket Railway, hash por releitura; último SUCCESS 12/11 09:03 UTC (1,42 MB). restore-check semanal (domingo 10:00 UTC) desde 12/11, comparando o restaurado com o próprio backup (0028).
