@@ -1,0 +1,4 @@
+Frontend: Railway projeto familia-finance, serviço app (Bun), https://familia-finance.up.railway.app.
+Backup: serviço Railway 'backup' (cron seg 09:00 UTC) → GET backup-export (token) → gzip → bucket 'backups' (iad) → relê/hash → POST /report. Registro em backup_runs.
+Restauração: serviço Railway 'restore-check' (script; publicar/redeploy para rodar) → último objeto do bucket → POST backup-export/restore → restore_backup_to_test() em esquema restore_test → compara → backup_runs RESTORE_TEST_OK/DIVERGENT.
+Recuperação total: projeto Supabase novo → migrações 0001–0010 → secrets Pluggy → restaurar JSON do bucket com jsonb_populate_recordset nas tabelas públicas (mesma lógica de restore_backup_to_test, sem o prefixo restore_test) → recriar tokens em app_settings → pluggy-sync.

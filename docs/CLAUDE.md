@@ -1,0 +1,1 @@
+Instruções permanentes: ler PROJECT_STATE antes de agir; nunca apagar dados financeiros reais; migrações só aditivas sem autorização; não colar segredos no chat; distinguir implementado/testado/validado/publicado; atualizar PROJECT_STATE, TEST_REPORT e CHANGELOG a cada entrega; usar /v2/transactions; não forçar refresh na Pluggy.

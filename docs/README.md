@@ -1,0 +1,1 @@
+Família Finance AI — gestor financeiro da família Abrão. Acesso: https://familia-finance.up.railway.app (login por e-mail/senha criado no Supabase Auth). Dados: Open Finance (Santander via Meu Pluggy), sincronizados 2x/dia. Categorias: automáticas por regras; corrija em Lançamentos ou Revisão; marque "aplicar no futuro" para criar regra.

@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.*
+*.local
+.DS_Store
+# backups com dados financeiros nunca entram no repositório
+*.json.gz
+backups/

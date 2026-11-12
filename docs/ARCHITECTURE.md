@@ -1,0 +1,5 @@
+Banco: Supabase familia-finance (sa-east-1, free), Postgres 17, RLS por household via auth.uid().
+Ingestão: Edge Function pluggy-sync (Deno) → Pluggy /items, /accounts, /v2/transactions (cursor), /bills, /investments → raw_transactions (dado bruto + hash) → transactions (normalizado) → classify_transactions().
+Agendamento: pg_cron 'pluggy-sync-diario' (0 10,22 * * * UTC) via pg_net com x-sync-token de app_settings.
+Frontend: Railway Function 'app' (Bun, arquivo único) serve SPA estática; navegador fala direto com Supabase (anon key + RLS). Supabase Edge Function 'app' existe mas é inútil: a plataforma bloqueia HTML no domínio supabase.co.
+Decisões: valores numeric(14,2); sinal gerencial DEBIT negativo / CREDIT positivo; datas como a Pluggy entrega (aaaa-mm-dd); competência do cartão = mês do fechamento.
