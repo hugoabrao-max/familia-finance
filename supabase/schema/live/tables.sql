@@ -119,6 +119,7 @@ create table public.card_bill_cycles (
   paid_amount numeric,
   paid_transaction_id uuid,
   updated_at timestamp with time zone not null default now(),
+  cutoff_date date,
   constraint card_bill_cycles_pkey PRIMARY KEY (account_id, closing_date),
   constraint card_bill_cycles_account_id_fkey FOREIGN KEY (account_id) REFERENCES accounts(id),
   constraint card_bill_cycles_source_check CHECK ((source = ANY (ARRAY['pdf'::text, 'pluggy_parcelas'::text, 'estimado'::text])))

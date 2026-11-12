@@ -1,6 +1,6 @@
 # Família Finance AI — Relatório de handoff para o Claude Code
 
-**Data do levantamento:** 12/11/2026 · **Responsável:** Hugo Veras Abrão (owner) · **Versão em produção:** frontend v0.14.0 / banco migração 0025
+**Data do levantamento:** 12/11/2026 · **Responsável:** Hugo Veras Abrão (owner) · **Versão em produção:** frontend v0.14.0 / banco migração 0026
 **Fonte deste relatório:** estado lido ao vivo no Supabase `familia-finance` e no Railway `familia-finance` em 12/11/2026, mais os 12 documentos de continuidade da tabela `project_docs` e o histórico do projeto.
 
 > Convenção de status usada em todo o documento (exigência do Hugo): **implementado** (código existe) → **testado** (teste automatizado/simulado) → **validado** (conferido com documentos reais) → **publicado** (em produção). Nada é "resolvido" só porque compila.
@@ -142,7 +142,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 | 1 | Receita = ATMO Engenharia, Abrão Serviços Médicos, PIX recebidos da Juliana (confirmado 06/10/2026) |
 | 2 | Transferências internas (pagamento de fatura, PIX entre contas do Hugo, transferência para familiar) não entram em receita/despesa gerencial |
 | 3 | Cartão: competência = mês do **fechamento** da fatura; pagamento da fatura só aparece na visão de caixa |
-| 4 | Cartão (Open Finance): competência pelo `billPostDate`; **parcela 2+ lançada pela Pluggy no dia do fechamento vai para a fatura seguinte** (com isso o 3738 bateu centavo a centavo com 7 PDFs). Total oficial = débito na conta; total por lançamentos é estimativa (±1%) |
+| 4 | Cartão (Open Finance): lançamento vai para a **primeira fatura cujo corte é posterior ao `billPostDate`** — o que tem `billPostDate` no próprio dia do corte vai para a fatura seguinte (à vista e parcelas). Corte = fechamento, ou `card_bill_cycles.cutoff_date` quando o banco corta em outra data (nov/25: 01/12/2025). Regra de 12/11/2026 (migração 0026), validada contra 11 PDFs: resíduo constante de −128,92/−70,20 = parcelas de compras com mais de 12 meses que a Pluggy não traz. Total oficial = débito na conta |
 | 5 | Titulares: cartões 5430 e 8305 = Hugo; 7297 e 3738 = Juliana. Todos na mesma fatura do Unique 5430 |
 | 6 | Pessoas casadas por **nome completo normalizado**, nunca só primeiro nome |
 | 7 | Precedência de classificação: ajuste do usuário > pessoa > regra do sistema > estabelecimento > tipo de operação > MCC (sugestão, confiança 0,70) > pendente |
@@ -191,7 +191,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 |---|---|---|---|---|
 | Ingestão Pluggy v2 + idempotência | ✅ | ✅ | ✅ 12 meses, 0 duplicados | ✅ |
 | Conta corrente × 9 extratos PDF jan–set/26 | ✅ | ✅ | ✅ só viradas de mês (±50, ±475) e arredondamento ≤ R$ 0,04 | ✅ |
-| Competência do cartão × 10 faturas PDF | ✅ | ✅ | ⚠️ jan–set ≤ 1,4%; **dez/25 +R$ 3.766 (13%) sem explicação**; nov/25 parcial | ✅ |
+| Competência do cartão × 10 faturas PDF | ✅ | ✅ | ✅ após 0026 (12/11): dez/25–mar/26 −128,92; abr–set/26 −70,20; out/26 +0,02 (parcelas antigas fora da janela da Pluggy); nov/25 parcial | ✅ |
 | Classificação automática | ✅ | ✅ | ✅ 11 pendentes restantes | ✅ |
 | Alertas (`v_alerts`) | ✅ | ✅ | ✅ | ✅ |
 | Fechamento mensal | ✅ | ✅ só a checagem | ❌ nenhum mês fechado | ✅ |
@@ -228,7 +228,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 | P0 | ~~Criar repositório Git com todo o código e esquema~~ — feito 12/11/2026: github.com/hugoabrao-max/familia-finance (privado) |
 | P0 | ~~Atualizar `project_docs` defasados (`PROJECT_STATE`, `DEPLOYMENT`, `ROADMAP`)~~ — feito 12/11/2026 (também `ARCHITECTURE`, `INTEGRATIONS`, `SECURITY`, `CHANGELOG`) |
 | P1 | ~~Teste de RLS cruzada com o login da Juliana~~ — testado 12/11 por simulação no banco (ver TEST_REPORT) |
-| P1 | ~~Investigar diferença de dez/25 no cartão (+13%)~~ — explicada 12/11 item a item contra o PDF (bill_closing_date da Pluggy errado nas bordas do ciclo); **correção de competência aguarda ok do Hugo** |
+| P1 | ~~Investigar diferença de dez/25 no cartão (+13%)~~ — explicada e **corrigida** 12/11 (migração 0026: regra estrita + corte de nov/25; 62 lançamentos mudaram de mês, reversível via `audit_logs`) |
 | P1 | ~~`restore-check` sem agendamento~~ — semanal desde 12/11 (domingo 10:00 UTC) |
 | P1 | Ativar proteção de senha vazada no Supabase Auth; avaliar MFA |
 | P1 | "Esqueci a senha" no login (exige SMTP próprio) |

@@ -8,7 +8,6 @@ declare n int;
 begin
   with x as (
     select t.id,
-      coalesce(t.installment_number,1) inst,
       coalesce((r.payload->'creditCardMetadata'->>'billPostDate')::date, t.event_date) pd,
       r.payload->'creditCardMetadata'->>'cardNumber' card,
       nullif(r.payload->'creditCardMetadata'->>'billForecastDate','0001-01') bf,
@@ -17,7 +16,7 @@ begin
     left join raw_transactions r on r.id=t.raw_transaction_id
   ), y as (
     select x.*, (select min(cc.closing_date) from card_bill_cycles cc where cc.account_id=x.account_id and not cc.superseded
-                  and ((x.inst>=2 and cc.closing_date>x.pd) or (x.inst<2 and cc.closing_date>=x.pd))) fech,
+                  and coalesce(cc.cutoff_date, cc.closing_date) > x.pd) fech,
            (select h.holder_name from card_holders h where h.card_last4=x.card) holder
     from x)
   update transactions t set

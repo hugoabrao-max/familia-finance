@@ -5,7 +5,7 @@
 5. Pessoas: correspondência por nome completo normalizado, nunca só primeiro nome.
 6. Precedência: ajuste do usuário > pessoa > regra do sistema > estabelecimento > tipo de operação > pendente.
 7. Nenhum lançamento é apagado; alterações da origem ficam em raw_transactions.changed_count.
-8. Cartão (Open Finance): competência = mês do fechamento em que o lançamento cai pela data de lançamento na fatura (billPostDate); parcela 2+ lançada no dia do fechamento vai para a fatura seguinte. Total oficial da fatura = débito na conta corrente; total por lançamentos é estimativa (±1%).
+8. Cartão (Open Finance): competência = mês do fechamento da fatura em que o lançamento cai: a primeira fatura cujo corte é posterior à data de lançamento na fatura (billPostDate); lançamento com billPostDate no próprio dia do corte vai para a fatura seguinte (compras à vista e parcelas; regra de 12/11/2026, validada contra 11 PDFs). Corte = data de fechamento, ou card_bill_cycles.cutoff_date quando o banco corta em outra data (nov/25: 01/12/2025). Total oficial da fatura = débito na conta corrente; total por lançamentos é estimativa (±1%).
 9. Titulares: cartões 5430 e 8305 = Hugo; 7297 e 3738 = Juliana (pela fatura PDF).
 10. MCC só sugere (confiança 0,70); regra de estabelecimento, pessoa e ajuste do usuário têm precedência.
 11. Boleto Itaú Unibanco = fatura do cartão extra (não conectado) → despesa do mês (cartao_itau), teto combinado R$ 1,5 mil.

@@ -1,9 +1,9 @@
-# Estado real — 12/11/2026 (frontend v0.14.0 · banco migração 0025)
+# Estado real — 12/11/2026 (frontend v0.14.0 · banco migração 0026)
 Status: implementado → testado → validado (documentos reais) → publicado. Nada é "resolvido" só porque compila.
 
 ## Produção
 - Frontend v0.14.0 publicado no Railway (serviço app) em 07/11; código conferido idêntico ao repositório.
-- Banco: 29 migrações (0001–0025; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
+- Banco: 30 migrações (0001–0026; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
 - Sincronização: pg_cron 4×/dia (15 1,3,10,22 UTC) + pos-sync 10 min depois; últimas execuções SUCCESS.
 - Backup diário 09:00 UTC → bucket Railway, hash por releitura; último SUCCESS 12/11 09:03 UTC (1,42 MB). restore-check semanal (domingo 10:00 UTC) desde 12/11.
 - Dados: 3.550 lançamentos (05/11/2025 → 11/11/2026); 638 regras; 49 categorias; 11 pendentes (7 out/26, 4 nov/26).
@@ -13,7 +13,7 @@ Status: implementado → testado → validado (documentos reais) → publicado. 
 github.com/hugoabrao-max/familia-finance (privado). Conteúdo exportado da produção e conferido: app.ts/backup/restore-check byte a byte com o Railway; 29 migrações, 49 definições vivas e 12 docs por md5 com o banco; Edge Functions sem checksum (parse OK). Fonte de verdade do esquema: supabase/schema/live (prevalece sobre migrações).
 
 ## Validação
-- Validado com documentos reais: conta corrente × 9 extratos; cartão × 10 faturas (jan–set ≤1,4%; dez/25 +13% explicado em 12/11: bill_closing_date da Pluggy errado nas bordas do ciclo — ver TEST_REPORT; correção de competência aguarda ok); backup/restore.
+- Validado com documentos reais: conta corrente × 9 extratos; cartão × 10 faturas (jan–set ≤1,4%; corrigido em 12/11 pela migração 0026: dez/25–mar/26 −128,92, abr–set/26 −70,20, out/26 +0,02 — resíduo = parcelas de compras com mais de 12 meses que a Pluggy não traz); backup/restore.
 - Testado, aguardando Hugo: v0.10–v0.14 (Início, Plano, Meta, Fixas, Cartão), simulações.
 - Testado 12/11: RLS cruzada Juliana × Hugo (simulação no banco, rollback) — Juliana lê tudo igual, edita categorias/orçamento/metas, não fecha/reabre meses nem roda funções internas.
 - Não testado: login real da Juliana e do Hugo no navegador/celular; fechamento de mês (nenhum fechado).
