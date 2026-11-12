@@ -232,7 +232,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 | P1 | ~~`restore-check` sem agendamento~~ — semanal desde 12/11 (domingo 10:00 UTC) |
 | P1 | Ativar proteção de senha vazada no Supabase Auth; avaliar MFA |
 | P1 | "Esqueci a senha" no login (exige SMTP próprio) |
-| P2 | Relatório mensal em PDF + planilha preservando conciliação (requisito das instruções do projeto) |
+| P2 | ~~Relatório mensal em PDF + planilha preservando conciliação~~ — `scripts/relatorio_mensal.sql` + `.py`; out/2026 entregue em 12/11 (preliminar) |
 | P2 | Projeção de 6 meses; CFO AI com dados agregados (item 10 do Prompt Mestre) |
 | P2 | Fixos recorrentes sem compromisso formal: conferir cobertura no comprometido do mês |
 | P2 | "Seguro (parcelado)" também casa com seguro incêndio — conferir regra |

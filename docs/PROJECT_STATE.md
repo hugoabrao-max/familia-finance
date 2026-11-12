@@ -23,5 +23,8 @@ github.com/hugoabrao-max/familia-finance (privado). Conteúdo exportado da produ
 - (corrigido 12/11, 0029) handle_new_auth_user só vincula login pelo e-mail cadastrado.
 - Funções SECURITY DEFINER: todas com search_path=public. anon executa só utilitárias inofensivas.
 
+## Relatório mensal
+scripts/relatorio_mensal.sql + .py geram PDF e planilha do mês (out/2026 entregue em 12/11, preliminar). Para gerar outro mês: exportar os dados com md5 conferido e rodar o script.
+
 ## Próxima ação
 Hugo: abrir o app no celular e validar v0.10–v0.14; revisar 11 pendentes; decidir orçamento/meta. Técnica: ver ROADMAP.

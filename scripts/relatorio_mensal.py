@@ -123,7 +123,8 @@ def planilha(dados, lanc, path):
     ws = wb.create_sheet("Categorias")
     linhas = [[c["group_name"], c["category_name"], c["category_kind"], c["n"], D(c["total"])] for c in dados["categorias"] or []]
     n = tabela(ws, 1, ["Grupo", "Categoria", "Tipo", "Lançamentos", "Total"], linhas, moeda=(4,), larg=[26, 34, 14, 12, 16])
-    ws.cell(n + 1, 4, "Soma").font = B; c = ws.cell(n + 1, 5, f"=SUM(E2:E{n})"); c.number_format = BRL; c.font = B
+    ws.cell(n + 1, 3, "Soma (receitas + despesas + investimentos; transferências fora)").font = B
+    c = ws.cell(n + 1, 5, f"=SUM(E2:E{n})"); c.number_format = BRL; c.font = B
 
     ws = wb.create_sheet("Orçamento")
     tabela(ws, 1, ["Grupo", "Orçado", "Gasto", "Saldo", "% usado", "Fonte do orçamento"],
@@ -246,7 +247,7 @@ def pdf(dados, lanc, path):
     story += [dr, Spacer(1, 3 * mm)]
 
     def tab(cab, linhas, larg, alinhar_dir=(), total=None):
-        data = [[P(f"<b>{h}</b>", s=7.5, c=colors.white) for h in cab]]
+        data = [[P(f"<b>{h}</b>", s=7.5, c=colors.white, alignment=2 if j in alinhar_dir else 0) for j, h in enumerate(cab)]]
         for ln in linhas:
             data.append([P(str(v), s=8, alignment=2 if j in alinhar_dir else 0) for j, v in enumerate(ln)])
         if total:
