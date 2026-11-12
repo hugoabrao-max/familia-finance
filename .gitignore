@@ -10,3 +10,7 @@ backups/
 relatorios/
 *.xlsx
 *.pdf
+tests/ui/node_modules/
+tests/ui/sb.mjs
+tests/ui/out/
+tests/ui/package*.json
