@@ -198,7 +198,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 | Planejamento / meta mensal / fixas / financiamentos | ✅ | ✅ Playwright 390×844 e 1366×820 | ⚠️ números conferidos no banco; **validação visual do Hugo pendente** | ✅ |
 | Simulações | ✅ | ✅ (conferência manual de cenário) | ⚠️ aguarda Hugo | ✅ |
 | Backup + restauração | ✅ | ✅ | ✅ restore 07/11 com contagens e soma (−505.185,43) iguais à produção | ✅ diário |
-| RLS | ✅ | ✅ anon bloqueado; owner lê/grava | ❌ **acesso cruzado entre 2 usuários não testado** | ✅ |
+| RLS | ✅ | ✅ anon bloqueado; owner lê/grava; **12/11: Juliana × Hugo testado** (simulação no banco, rollback) | ⚠️ login real da Juliana no app não feito | ✅ |
 | Navegador real / celular do Hugo | — | Playwright apenas | ❌ não confirmado | — |
 
 **Desempenho (06/11, papel authenticated):** `v_month_commitments` 20.545 → 99 ms; `v_fixed_expenses` 3.681 → 83 ms; demais < 60 ms.
@@ -227,7 +227,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 |---|---|
 | P0 | ~~Criar repositório Git com todo o código e esquema~~ — feito 12/11/2026: github.com/hugoabrao-max/familia-finance (privado) |
 | P0 | ~~Atualizar `project_docs` defasados (`PROJECT_STATE`, `DEPLOYMENT`, `ROADMAP`)~~ — feito 12/11/2026 (também `ARCHITECTURE`, `INTEGRATIONS`, `SECURITY`, `CHANGELOG`) |
-| P1 | Teste de RLS cruzada com o login da Juliana (ela vê tudo, edita categorias/orçamento/metas, **não fecha meses**) |
+| P1 | ~~Teste de RLS cruzada com o login da Juliana~~ — testado 12/11 por simulação no banco (ver TEST_REPORT) |
 | P1 | Investigar diferença de dez/25 no cartão (+13%) |
 | P1 | `restore-check` sem agendamento — criar rotina periódica (ex.: semanal) |
 | P1 | Ativar proteção de senha vazada no Supabase Auth; avaliar MFA |

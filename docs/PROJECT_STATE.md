@@ -15,7 +15,8 @@ github.com/hugoabrao-max/familia-finance (privado). Conteúdo exportado da produ
 ## Validação
 - Validado com documentos reais: conta corrente × 9 extratos; cartão × 10 faturas (jan–set ≤1,4%; dez/25 +13% sem explicação); backup/restore.
 - Testado, aguardando Hugo: v0.10–v0.14 (Início, Plano, Meta, Fixas, Cartão), simulações.
-- Não testado: RLS cruzada com o login da Juliana; navegador/celular real do Hugo; fechamento de mês (nenhum fechado).
+- Testado 12/11: RLS cruzada Juliana × Hugo (simulação no banco, rollback) — Juliana lê tudo igual, edita categorias/orçamento/metas, não fecha/reabre meses nem roda funções internas.
+- Não testado: login real da Juliana e do Hugo no navegador/celular; fechamento de mês (nenhum fechado).
 
 ## Achados de segurança (12/11, revisão do código exportado — nada alterado)
 - pluggy-sync aceita o token também por ?token= na URL (pode ir para logs) e compara tokens com === (não tempo constante); idem pluggy-diag e backup-export.
