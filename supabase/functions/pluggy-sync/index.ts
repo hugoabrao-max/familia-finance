@@ -1,4 +1,4 @@
-// Família Finance AI — pluggy-sync (v1.3.2)
+// Família Finance AI — pluggy-sync (v1.3.3)
 // Sincroniza itens do conector MeuPluggy (Pluggy) para o Supabase.
 // Autenticação da chamada: header x-sync-token = app_settings.sync_token
 // ou Authorization: Bearer <service_role_key>.
@@ -119,14 +119,29 @@ async function setting(key: string): Promise<string | null> {
   return data?.value ?? null;
 }
 
+// Comparação em tempo constante: compara os SHA-256 (mesmo tamanho) byte a byte, sem sair cedo.
+async function safeEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder();
+  const [ha, hb] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(a)),
+    crypto.subtle.digest("SHA-256", enc.encode(b)),
+  ]);
+  const x = new Uint8Array(ha), y = new Uint8Array(hb);
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i] ^ y[i];
+  return diff === 0;
+}
+
+// v1.3.3 (12/11/2026): token só pelo header x-sync-token (removido ?token= na URL, que vazava para logs);
+// comparações em tempo constante.
 async function authorized(req: Request): Promise<boolean> {
   const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const bearer = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  if (svc && bearer === svc) return true;
-  const tok = req.headers.get("x-sync-token") ?? new URL(req.url).searchParams.get("token");
+  if (svc && bearer && await safeEqual(bearer, svc)) return true;
+  const tok = req.headers.get("x-sync-token");
   if (!tok) return false;
   const stored = await setting("sync_token");
-  return !!stored && stored === tok;
+  return !!stored && await safeEqual(tok, stored);
 }
 
 Deno.serve(async (req) => {

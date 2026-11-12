@@ -7,7 +7,7 @@ All three services are Railway Functions (Bun), image `ghcr.io/railwayapp/functi
 |---|---|---|---|---|
 | `app` | `022db954-6ad0-4ac5-a8b2-a08946bc16da` | `../app/src/app.ts` | none (HTTP server, domain `familia-finance.up.railway.app`) | default |
 | `backup` | `4d7ec7db-f037-4859-8af7-693de947c69c` | `backup.ts` | cron `0 9 * * *` (UTC) | NEVER |
-| `restore-check` | `6e7fa322-bc40-451b-9bdf-f4a49e9311c3` | `restore-check.ts` | none — runs once on each deploy/redeploy | NEVER |
+| `restore-check` | `6e7fa322-bc40-451b-9bdf-f4a49e9311c3` | `restore-check.ts` | cron `0 10 * * 0` (UTC, domingo 06:00 Cuiabá; desde 12/11/2026) e também a cada deploy/redeploy | NEVER |
 
 ## app
 Bun.serve SPA. Routes: `/` (HTML), `/manifest.json`, `/sw.js`, `/icon.png`, `/health` (`{"ok":true,"version":APP_VERSION}`); anything else redirects to `/`.
@@ -29,4 +29,4 @@ Downloads the most recent backup from the bucket, decompresses it, POSTs it to `
   Read it with the Railway MCP `get-function-source-code` (fields `code` / `deployedCode`), or decode the start command from `get-service-config` (`sed 's#^\./run\.sh ##' | base64 -d`).
 - Deploy with `update-function-source-code`, which **replaces the whole file** — always send the complete, tested file.
 - After deploying: read the source back with `get-function-source-code`, diff it against the tested local file (byte-identical), and for `app` check `https://familia-finance.up.railway.app/health` reports the new `APP_VERSION`.
-- `restore-check` executes on every deploy, so redeploying it triggers a restore test.
+- `restore-check` runs weekly (Sunday 10:00 UTC, after the 09:00 backup and before the 10:15 sync, so no sync changes production in between) and on every deploy. The comparator checks the restored backup against LIVE production, so a run long after the backup reports RESTORE_TEST_DIVERGENT on tables that grow with each sync (sync_jobs, investment_positions, connection_consents, audit_logs) — see ROADMAP P2.

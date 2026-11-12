@@ -62,8 +62,8 @@ Railway "restore-check" (on deploy) ─► restaura em esquema restore_test e co
 
 | Slug | Versão | verify_jwt | Função | Ação recomendada |
 |---|---|---|---|---|
-| `pluggy-sync` | v6 (código v1.3.2) | false (protegida por `x-sync-token` de `app_settings`) | Ingestão Pluggy por cursor; casamento de contas/transações em reautorização; moeda estrangeira em BRL | Manter |
-| `backup-export` | v2 | false (protegida por `x-backup-token`) | `GET` exporta todas as tabelas `public` em JSON; `POST /report` grava `backup_runs`; `POST /restore` chama `restore_backup_to_test()` | Manter |
+| `pluggy-sync` | v7 (código v1.3.3: token só por header, comparação em tempo constante) | false (protegida por `x-sync-token` de `app_settings`) | Ingestão Pluggy por cursor; casamento de contas/transações em reautorização; moeda estrangeira em BRL | Manter |
+| `backup-export` | v3 (código v1.2) | false (protegida por `x-backup-token`) | `GET` exporta todas as tabelas `public` em JSON; `POST /report` grava `backup_runs`; `POST /restore` chama `restore_backup_to_test()` | Manter |
 | `member-invite` | v1 | true | Owner/admin cria usuário no Auth e gera link `#acesso=<token_hash>` (1 h, uso único), auditado | Manter |
 | `owner-recovery` | v2 | true | Redefinição pontual da senha do Hugo em 06/11 — **desativada (responde 410)** | Remover |
 | `pluggy-diag` | v5 | false | Diagnóstico temporário (só `GET /items`, sem refresh) | Remover (aguardava ok do Hugo) |
@@ -77,7 +77,7 @@ Railway "restore-check" (on deploy) ─► restaura em esquema restore_test e co
 |---|---|---|---|---|
 | `app` | `022db954-6ad0-4ac5-a8b2-a08946bc16da` | Function Bun 1.4.4, sem variáveis (URL e publishable key no código) | contínuo | 07/11/2026 01:57 UTC — SUCCESS (v0.14.0) |
 | `backup` | `4d7ec7db-f037-4859-8af7-693de947c69c` | Function Bun (script) | `0 9 * * *` (05:00 Cuiabá) | 07/11/2026 — SUCCESS |
-| `restore-check` | `6e7fa322-bc40-451b-9bdf-f4a49e9311c3` | Function Bun (script) | sem cron — roda ao redeployar | 07/11/2026 — SUCCESS |
+| `restore-check` | `6e7fa322-bc40-451b-9bdf-f4a49e9311c3` | Function Bun (script) | `0 10 * * 0` (domingo 06:00 Cuiabá) e a cada redeploy | 07/11/2026 — SUCCESS |
 
 Variáveis de `backup` e `restore-check`: `BACKUP_URL`, `BACKUP_TOKEN`, `S3_ENDPOINT`, `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
 
@@ -228,8 +228,8 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 | P0 | ~~Criar repositório Git com todo o código e esquema~~ — feito 12/11/2026: github.com/hugoabrao-max/familia-finance (privado) |
 | P0 | ~~Atualizar `project_docs` defasados (`PROJECT_STATE`, `DEPLOYMENT`, `ROADMAP`)~~ — feito 12/11/2026 (também `ARCHITECTURE`, `INTEGRATIONS`, `SECURITY`, `CHANGELOG`) |
 | P1 | ~~Teste de RLS cruzada com o login da Juliana~~ — testado 12/11 por simulação no banco (ver TEST_REPORT) |
-| P1 | Investigar diferença de dez/25 no cartão (+13%) |
-| P1 | `restore-check` sem agendamento — criar rotina periódica (ex.: semanal) |
+| P1 | ~~Investigar diferença de dez/25 no cartão (+13%)~~ — explicada 12/11 item a item contra o PDF (bill_closing_date da Pluggy errado nas bordas do ciclo); **correção de competência aguarda ok do Hugo** |
+| P1 | ~~`restore-check` sem agendamento~~ — semanal desde 12/11 (domingo 10:00 UTC) |
 | P1 | Ativar proteção de senha vazada no Supabase Auth; avaliar MFA |
 | P1 | "Esqueci a senha" no login (exige SMTP próprio) |
 | P2 | Relatório mensal em PDF + planilha preservando conciliação (requisito das instruções do projeto) |
