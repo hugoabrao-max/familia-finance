@@ -1,4 +1,4 @@
-// Família Finance AI — pluggy-sync (v1.3.3)
+// Família Finance AI — pluggy-sync (v1.3.4)
 // Sincroniza itens do conector MeuPluggy (Pluggy) para o Supabase.
 // Autenticação da chamada: header x-sync-token = app_settings.sync_token
 // ou Authorization: Bearer <service_role_key>.
@@ -9,6 +9,8 @@
 //   - transação nova é casada com a existente da mesma conta por instante (ms) + valor + descrição,
 //     e só o ID da origem é trocado (categoria, regra e correções manuais são preservadas).
 // v1.3.2: compras no exterior gravadas em BRL (amountInAccountCurrency); moeda/valor originais em original_*.
+// v1.3.4 (12/11/2026): não grava bill_closing_date — é calculado por assign_card_competence (pos-sync) a partir do
+//   billPostDate; o valor da Pluggy (vazio na fatura aberta) apagava o vínculo até o pos-sync seguinte.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -362,7 +364,6 @@ Deno.serve(async (req) => {
               merchant: t.merchant ?? null,
               installment_number: ccm.installmentNumber ?? null,
               installment_total: ccm.totalInstallments ?? null,
-              bill_closing_date: isoDate(t.billClosingDate),
               bill_forecast_date: isoDate(t.billForecastDate),
               balance_after: num(t.balance),
               provider_category: t.category ?? null,

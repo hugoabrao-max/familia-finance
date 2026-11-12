@@ -1,6 +1,6 @@
 # Família Finance AI — Relatório de handoff para o Claude Code
 
-**Data do levantamento:** 12/11/2026 · **Responsável:** Hugo Veras Abrão (owner) · **Versão em produção:** frontend v0.14.0 / banco migração 0027
+**Data do levantamento:** 12/11/2026 · **Responsável:** Hugo Veras Abrão (owner) · **Versão em produção:** frontend v0.14.0 / banco migração 0028
 **Fonte deste relatório:** estado lido ao vivo no Supabase `familia-finance` e no Railway `familia-finance` em 12/11/2026, mais os 12 documentos de continuidade da tabela `project_docs` e o histórico do projeto.
 
 > Convenção de status usada em todo o documento (exigência do Hugo): **implementado** (código existe) → **testado** (teste automatizado/simulado) → **validado** (conferido com documentos reais) → **publicado** (em produção). Nada é "resolvido" só porque compila.
@@ -62,12 +62,12 @@ Railway "restore-check" (on deploy) ─► restaura em esquema restore_test e co
 
 | Slug | Versão | verify_jwt | Função | Ação recomendada |
 |---|---|---|---|---|
-| `pluggy-sync` | v7 (código v1.3.3: token só por header, comparação em tempo constante) | false (protegida por `x-sync-token` de `app_settings`) | Ingestão Pluggy por cursor; casamento de contas/transações em reautorização; moeda estrangeira em BRL | Manter |
+| `pluggy-sync` | v8 (código v1.3.4: token só por header, comparação em tempo constante, não grava `bill_closing_date`) | false (protegida por `x-sync-token` de `app_settings`) | Ingestão Pluggy por cursor; casamento de contas/transações em reautorização; moeda estrangeira em BRL | Manter |
 | `backup-export` | v3 (código v1.2) | false (protegida por `x-backup-token`) | `GET` exporta todas as tabelas `public` em JSON; `POST /report` grava `backup_runs`; `POST /restore` chama `restore_backup_to_test()` | Manter |
 | `member-invite` | v1 | true | Owner/admin cria usuário no Auth e gera link `#acesso=<token_hash>` (1 h, uso único), auditado | Manter |
 | `owner-recovery` | v2 | true | Redefinição pontual da senha do Hugo em 06/11 — **desativada (responde 410)** | Remover |
 | `pluggy-diag` | v5 | false | Diagnóstico temporário (só `GET /items`, sem refresh) | Remover (aguardava ok do Hugo) |
-| `app` | v1 | false | Tentativa de servir HTML pelo Supabase — inútil | Remover |
+| `app` | v2 | false | Desativada 12/11/2026 (responde 410) | Apagar no painel do Supabase |
 
 **Secrets (Edge Function Secrets):** `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`. Tokens internos (`sync_token`, `backup_token`) e `pluggy_item_ids` ficam em `app_settings` (sem política RLS → só service_role).
 
@@ -237,7 +237,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 | P2 | Fixos recorrentes sem compromisso formal: conferir cobertura no comprometido do mês |
 | P2 | "Seguro (parcelado)" também casa com seguro incêndio — conferir regra |
 | P2 | `investment_positions` cresce 1 linha por sync — política de retenção |
-| P2 | Remover Edge Functions `app`, `owner-recovery` (e `pluggy-diag` após ok) |
+| P2 | Edge Functions `app` e `owner-recovery` desativadas 12/11 — **Hugo apagar no painel do Supabase**; `pluggy-diag` após ok |
 | P3 | Modularizar o frontend (hoje 92 KB em um template string) — só se não quebrar o fluxo de deploy |
 
 ---

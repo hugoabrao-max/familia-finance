@@ -1,11 +1,11 @@
-# Estado real — 12/11/2026 (frontend v0.14.0 · banco migração 0027)
+# Estado real — 12/11/2026 (frontend v0.14.0 · banco migração 0028)
 Status: implementado → testado → validado (documentos reais) → publicado. Nada é "resolvido" só porque compila.
 
 ## Produção
 - Frontend v0.14.0 publicado no Railway (serviço app) em 07/11; código conferido idêntico ao repositório.
-- Banco: 31 migrações (0001–0027; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
+- Banco: 32 migrações (0001–0028; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
 - Sincronização: pg_cron 4×/dia (15 1,3,10,22 UTC) + pos-sync 10 min depois; últimas execuções SUCCESS.
-- Backup diário 09:00 UTC → bucket Railway, hash por releitura; último SUCCESS 12/11 09:03 UTC (1,42 MB). restore-check semanal (domingo 10:00 UTC) desde 12/11.
+- Backup diário 09:00 UTC → bucket Railway, hash por releitura; último SUCCESS 12/11 09:03 UTC (1,42 MB). restore-check semanal (domingo 10:00 UTC) desde 12/11, comparando o restaurado com o próprio backup (0028).
 - Dados: 3.550 lançamentos (05/11/2025 → 11/11/2026); 638 regras; 49 categorias; 11 pendentes (7 out/26, 4 nov/26).
 - Usuários: Hugo (owner) e Juliana (member), ambos vinculados ao Auth.
 
