@@ -6,3 +6,7 @@ node_modules/
 # backups com dados financeiros nunca entram no repositório
 *.json.gz
 backups/
+# relatórios gerados (dados financeiros) nunca entram no repositório
+relatorios/
+*.xlsx
+*.pdf
