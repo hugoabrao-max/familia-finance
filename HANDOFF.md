@@ -66,7 +66,7 @@ Railway "restore-check" (on deploy) ─► restaura em esquema restore_test e co
 | `backup-export` | v3 (código v1.2) | false (protegida por `x-backup-token`) | `GET` exporta todas as tabelas `public` em JSON; `POST /report` grava `backup_runs`; `POST /restore` chama `restore_backup_to_test()` | Manter |
 | `member-invite` | v1 | true | Owner/admin cria usuário no Auth e gera link `#acesso=<token_hash>` (1 h, uso único), auditado | Manter |
 | `owner-recovery` | v2 | true | Redefinição pontual da senha do Hugo em 06/11 — **desativada (responde 410)** | Remover |
-| `pluggy-diag` | v5 | false | Diagnóstico temporário (só `GET /items`, sem refresh) | Remover (aguardava ok do Hugo) |
+| `pluggy-diag` | v7 | false | Desativada 12/11/2026 (responde 410); v6 removeu o item antigo na Pluggy | Apagar no painel do Supabase |
 | `app` | v2 | false | Desativada 12/11/2026 (responde 410) | Apagar no painel do Supabase |
 
 **Secrets (Edge Function Secrets):** `PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`. Tokens internos (`sync_token`, `backup_token`) e `pluggy_item_ids` ficam em `app_settings` (sem política RLS → só service_role).
@@ -217,7 +217,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 | H3 | Conferir despesas fixas "sugeridas" com valores irregulares: Personal Raul, Gil Lemes, SAAE Chapada, Seguro Allianz, Ana Fátima |
 | H4 | Decidir adoção do orçamento/meta (nov/26 está inalcançável: margem 27,3 mil → sobra −4,3 mil) |
 | H5 | Confirmar se o lanche da Alice é despesa fixa |
-| H6 | Autorizar remoção de `pluggy-diag` e do item antigo Pluggy `22255fcb…` |
+| H6 | ~~Autorizar remoção de `pluggy-diag` e do item antigo Pluggy `22255fcb…`~~ — feito 12/11 (item removido na Pluggy; função desativada) |
 | H7 | Considerar conectar o cartão Itaú no Meu Pluggy |
 | H8 | Aylton: pagamentos não localizados |
 | H9 | Reautorizar o app na Pluggy antes de **05/11/2027** |
@@ -237,7 +237,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 | P2 | Fixos recorrentes sem compromisso formal: conferir cobertura no comprometido do mês |
 | P2 | "Seguro (parcelado)" também casa com seguro incêndio — conferir regra |
 | P2 | `investment_positions` cresce 1 linha por sync — política de retenção |
-| P2 | Edge Functions `app` e `owner-recovery` desativadas 12/11 — **Hugo apagar no painel do Supabase**; `pluggy-diag` após ok |
+| P2 | Edge Functions `app`, `pluggy-diag` e `owner-recovery` desativadas 12/11 — **Hugo apagar no painel do Supabase** |
 | P3 | Modularizar o frontend (hoje 92 KB em um template string) — só se não quebrar o fluxo de deploy |
 
 ---
@@ -277,7 +277,7 @@ familia-finance/
 | Railway projeto | `familia-finance` · `9e62e7a6-4137-4a19-b6f6-8a0ab822dcc0` · env production `f79eeeae-5238-4de5-a761-97746d6b3a13` |
 | App | https://familia-finance.up.railway.app (`/health` → versão) |
 | Pluggy item atual | `3b1fad88-40cc-4d56-8bd5-4c316243310d` (consentimento até 06/11/2027) |
-| Pluggy item antigo | `22255fcb-4e82-42fe-b9d7-6e3f656df1ee` (em `app_settings.pluggy_item_ids_anterior`; remover após ok) |
+| Pluggy item antigo | `22255fcb-4e82-42fe-b9d7-6e3f656df1ee` — **removido na Pluggy em 12/11/2026**; conexão mantida no banco como histórico (`is_active=false`) |
 | Contratos de financiamento | Apto Cuiabá 550900058734 (saldo R$ 327.923,03 em 22/10/26) · Casa Chapada 0010231243 (R$ 498.208,97 em 12/10/26) |
 | App legado v18 | claude.ai/artifact/37SkCXP9Trf1WSPoHHryBN (somente referência) |
 | Outros projetos Supabase/Railway na conta | `fratello-plataforma`, `fratello-frota`, `capable-*` — **não pertencem a este projeto, não mexer** |
