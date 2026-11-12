@@ -20,3 +20,5 @@ de falha em vez de números incompletos, mês atual no fuso de Cuiabá e layout 
 notebook. Reinicie o servidor depois de editar `app.ts` (ele carrega o arquivo ao iniciar).
 
 `fase3.test.js` cobre a Fase 3: totais separados (entradas, saídas, líquido) sobre todo o filtro, lista agrupada por dia com subtotal, "carregar mais" de 100 em 100 com quantos faltam, voltar mantendo o que já foi carregado, busca ao digitar (descrição ou estabelecimento, com espera de 350 ms e sem empilhar histórico) e Revisão em lote por estabelecimento (regra criada só na primeira gravação, opcional, um a um continua possível).
+
+`fase4.test.js` cobre a Fase 4: Plano como painel de 4 cards (Orçamento, Meta de sobra, Contas fixas, Simular) com valores e destinos, Reservas separadas, Patrimônio recolhido, tela de Orçamento com "restam/passou", edição "só neste mês" (1 linha, com Desfazer) e "deste mês em diante" (congela os meses anteriores com o valor antigo sem sobrescrever, grava do mês até +12 e o padrão), Contas fixas com financiamentos e parcelamentos, valores digitados no formato brasileiro (1.200 = mil e duzentos).
