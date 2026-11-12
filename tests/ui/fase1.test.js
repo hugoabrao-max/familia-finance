@@ -70,9 +70,9 @@ function data(table, url) {
   await p.screenshot({ path: OUT + '/f1-inicio.png' });
   await p.evaluate(() => scrollTo(0, 900)); await p.waitForTimeout(100);
   const y0 = await p.evaluate(() => scrollY);
-  const link = p.locator('a.item[href^="#lancamentos?month="]').nth(10); await link.scrollIntoViewIfNeeded(); await p.evaluate(() => scrollTo(0, 900));
-  await p.evaluate(() => { location.hash = document.querySelectorAll('a.item[href^="#lancamentos?month="]')[10].getAttribute('href').slice(1) }); await idle(p);
-  ok('drill-down abre Lançamentos no topo', (await p.locator('h1', { hasText: 'Lançamentos' }).count()) === 1 && (await p.evaluate(() => scrollY)) === 0);
+  const link = p.locator('a.item[href^="#categoria?"]').nth(10); await link.scrollIntoViewIfNeeded(); await p.evaluate(() => scrollTo(0, 900));
+  await p.evaluate(() => { location.hash = document.querySelectorAll('a.item[href^="#categoria?"]')[10].getAttribute('href').slice(1) }); await idle(p);
+  ok('drill-down abre o detalhe da categoria no topo', (await p.locator('.crumb', { hasText: 'Início' }).count()) === 1 && (await p.evaluate(() => scrollY)) === 0);
   await p.goBack(); await p.waitForTimeout(60);
   const yInstant = await p.evaluate(() => scrollY); const hInstant = await p.locator('h1', { hasText: 'Início' }).count();
   await idle(p); const y1 = await p.evaluate(() => scrollY);
