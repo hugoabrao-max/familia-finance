@@ -1,12 +1,12 @@
-# Estado real — 12/11/2026 (frontend v0.19.1 · banco migração 0029)
+# Estado real — 12/11/2026 (frontend v0.19.2 · banco migração 0029)
 Status: implementado → testado → validado (documentos reais) → publicado. Nada é "resolvido" só porque compila.
 
 ## Produção
-- Frontend v0.19.1 no ar em 12/11 (redesenho completo, Fases 1–5: voltar devolve o lugar, carregando/erro, fuso de Cuiabá, confirmações, Desfazer; Início com cards e detalhe de categoria; Lançamentos por dia com totais e "carregar mais", busca ao digitar, Revisão em lote por estabelecimento criando regra; Plano em 4 cards, Orçamento com "só este mês/deste mês em diante", Contas fixas com financiamentos, Reservas; tema no app, notebook em grade, teclado/leitor de tela, vocabulário novo). Publicado pelo serviço web do Railway, construído do GitHub (limite de 96 KB das Functions); página servida idêntica à testada; /health 0.19.1.
+- Frontend v0.19.2 no ar em 12/11 (redesenho completo, Fases 1–5: voltar devolve o lugar, carregando/erro, fuso de Cuiabá, confirmações, Desfazer; Início com cards e detalhe de categoria; Lançamentos por dia com totais e "carregar mais", busca ao digitar, Revisão em lote por estabelecimento criando regra; Plano em 4 cards, Orçamento com "só este mês/deste mês em diante", Contas fixas com financiamentos, Reservas; tema no app, notebook em grade, teclado/leitor de tela, vocabulário novo). Publicado pelo serviço web do Railway, construído do GitHub (limite de 96 KB das Functions); página servida idêntica à testada; /health 0.19.2.
 - Banco: 33 migrações (0001–0029; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
 - Sincronização: pg_cron 4×/dia (15 1,3,10,22 UTC) + pos-sync 10 min depois; últimas execuções SUCCESS.
 - Backup diário 09:00 UTC → bucket Railway, hash por releitura; último SUCCESS 12/11 09:03 UTC (1,42 MB). restore-check semanal (domingo 10:00 UTC) desde 12/11, comparando o restaurado com o próprio backup (0028).
-- Contas fixas: 30 ativas, R$ 50.300,14/mês — desde 12/11 incluem os financiamentos imobiliários (R$ 7.377,86, decisão do Hugo).
+- Contas fixas: 30 ativas, R$ 50.300,14/mês — desde 12/11 incluem os financiamentos imobiliários (R$ 7.377,86, decisão do Hugo); as 24 sugeridas foram aceitas pelo Hugo em 12/11.
 - Dados: 3.550 lançamentos (05/11/2025 → 11/11/2026); 638 regras; 49 categorias; 11 pendentes (7 out/26, 4 nov/26).
 - Usuários: Hugo (owner) e Juliana (member), ambos vinculados ao Auth.
 
