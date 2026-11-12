@@ -22,7 +22,7 @@ O contrato de negócio está em `HANDOFF.md` §5 e `docs/FINANCIAL_RULES.md`. **
 
 | Caminho | Conteúdo | Fonte de verdade em produção |
 |---|---|---|
-| `app/src/app.ts` | Frontend (Bun, SPA em arquivo único) | Railway serviço `app` (`get-function-source-code`) |
+| `app/src/app.ts` + `app/Dockerfile` | Frontend (Bun, SPA em arquivo único) | Railway serviço `web`, construído do GitHub (branch `main`, pasta `app/`) |
 | `railway/*.ts` | Scripts `backup` e `restore-check` | Railway serviços homônimos |
 | `supabase/functions/<slug>/` | Edge Functions | Supabase (`get_edge_function`) |
 | `supabase/schema/migrations/` | Migrações aplicadas, nomeadas por `version` (a numeração 0006–0010 se repete) | `supabase_migrations.schema_migrations` |
@@ -32,7 +32,7 @@ O contrato de negócio está em `HANDOFF.md` §5 e `docs/FINANCIAL_RULES.md`. **
 
 ## Deploy
 
-- **Frontend:** `update-function-source-code` (MCP Railway) no serviço `app` substitui o arquivo inteiro. Subir `APP_VERSION`, publicar, ler de volta com `get-function-source-code`, `diff` vazio contra `app/src/app.ts`, e `curl https://familia-finance.up.railway.app/health`.
+- **Frontend:** subir `APP_VERSION`, rodar `tests/ui` (ver README), commit e push em `main`. O serviço `web` do Railway constrói sozinho (só quando muda algo em `app/`). Conferir: `list-deployments` do `web` até SUCCESS; `/health` com a nova versão; md5 da página servida igual ao do app local no mesmo commit (do sandbox, via `net.http_get` no Supabase). Não usar `update-function-source-code`: Functions têm limite de 96 KB e o app já passou disso. O serviço `app` (Function antiga, sem domínio) é só reserva.
 - **Banco:** `apply_migration` (MCP Supabase); depois re-exportar o objeto afetado para `supabase/schema/live/` e a migração para `supabase/schema/migrations/`.
 - **Edge Functions:** `deploy_edge_function` mantendo o `verify_jwt` atual (ver `supabase/functions/README.md`).
 
