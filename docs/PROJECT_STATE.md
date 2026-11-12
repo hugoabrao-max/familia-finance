@@ -1,15 +1,26 @@
-# Estado real — 06/11/2026 (v0.3)
-Fase 0: validada. Fase 1: migrações 0001–0012 (0008 tabela de referência PDF; 0009/0010 ciclos do cartão; 0011 alertas e fechamento; 0012 bloqueio de funções internas). Frontend v0.2 publicado no Railway (código conferido idêntico ao testado).
-Fase 2: pluggy-sync validada; cartão Unique 5430 com 2.455 lançamentos (nov/25–nov/26).
-Fase 3: competência do cartão implementada e TESTADA contra 10 faturas PDF da v18 (jan–set/26 dentro de ±1,4%; dez/25 +13% sem explicação; nov/25 parcial porque a Pluggy só traz 12 meses). Pagamento de fatura vinculado em 11/11 faturas pagas. Classificação: 2.220 cartão por regra de estabelecimento, 213 por ramo (MCC, sugestão 70%), 10 pendentes; conta corrente 99 pendentes (R$ 31,7 mil) aguardando Hugo.
-Fase 4 (parcial): alertas (item 11) em v_alerts — implementados e testados com dados reais; fechamento mensal (item 12) com checklist, snapshot e reabertura auditada — implementado, testado só a checagem (nenhum mês fechado ainda).
-Segurança: corrigida exposição — export_backup e demais funções SECURITY DEFINER estavam executáveis pela chave pública (anon). Logs de 24h só mostram chamadas do próprio backup. Agora: funções internas só service_role; funções do app só usuário logado.
-Navegador real: v0.2 testada em Chromium simulando iPhone com dados fictícios (5 telas, sem erros). Ainda NÃO testada pelo Hugo.
-06/11 (tarde): Itaú e Mercado Livre classificados; pendentes antigos em lote histórico; restam 18 pendentes de out/26. Meses até set/26 prontos para fechamento.
-v0.4 (06/11): aba Plano — patrimônio, orçamento (proposta), compromissos, parcelas futuras, metas (proposta). Faltam: saldo devedor dos financiamentos (Hugo) e decisões de orçamento/metas.
-v0.5 (06/11): simulações (item 13) e acesso da Juliana via link gerado no app.
-Próxima ação: Hugo abrir o app (Início → Alertas, Cartão) e revisar pendentes; depois orçamento/metas/patrimônio (item 9).
-06/11/2026 v0.7 publicado (Plano com meses futuros e comprometido por categoria). Limitação: fixos recorrentes sem compromisso formal (escola, funcionárias) ainda não contam como comprometido. Pendências do Hugo: link de acesso da Juliana, saldo devedor/prazo dos financiamentos, adoção do orçamento/meta, 15 pendentes de outubro, lanche da Alice fixo?
-06/11/2026 v0.8 publicado: cadastro de despesas fixas com histórico de valores; Plano usa o cadastro como comprometido nos meses futuros. Itens "sugerido" aguardam conferência do Hugo (valores irregulares: Personal Raul, Gil Lemes, SAAE Chapada, Seguro Allianz, Ana Fátima).
-06/11/2026 Hugo esqueceu a senha: link de redefinição gerado por função temporária owner-recovery (token de uso pontual, chamada via pg_net, registrada em audit_logs) e desativada em seguida (responde 410). Pendente: botão "Esqueci a senha" no login exige envio de e-mail (SMTP próprio) — avaliar.
-07/11/2026 financiamentos imobiliários cadastrados a partir dos demonstrativos: saldo devedor total R$ 826.131,99 (Cuiabá 327.923,03 em 22/10/26; Chapada 498.208,97 em 12/10/26). v_net_worth agora desconta financiamentos e mostra patrimônio financeiro líquido ≈ −R$ 860 mil (sem imóveis). Decidido (07/11): dívida só aparece junto com o bem; patrimônio sem destaque. Imóveis incluídos pelo (valor de garantia do banco: Cuiabá 702.952,52; Chapada 702.456,74, ou outro valor).
+# Estado real — 12/11/2026 (frontend v0.14.0 · banco migração 0025)
+Status: implementado → testado → validado (documentos reais) → publicado. Nada é "resolvido" só porque compila.
+
+## Produção
+- Frontend v0.14.0 publicado no Railway (serviço app) em 07/11; código conferido idêntico ao repositório.
+- Banco: 29 migrações (0001–0025; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
+- Sincronização: pg_cron 4×/dia (15 1,3,10,22 UTC) + pos-sync 10 min depois; últimas execuções SUCCESS.
+- Backup diário 09:00 UTC → bucket Railway, hash por releitura; último SUCCESS 12/11 09:03 UTC (1,42 MB). restore-check SUCCESS em 07/11 (sem agendamento).
+- Dados: 3.550 lançamentos (05/11/2025 → 11/11/2026); 638 regras; 49 categorias; 11 pendentes (7 out/26, 4 nov/26).
+- Usuários: Hugo (owner) e Juliana (member), ambos vinculados ao Auth.
+
+## Repositório (novo em 12/11/2026)
+github.com/hugoabrao-max/familia-finance (privado). Conteúdo exportado da produção e conferido: app.ts/backup/restore-check byte a byte com o Railway; 29 migrações, 49 definições vivas e 12 docs por md5 com o banco; Edge Functions sem checksum (parse OK). Fonte de verdade do esquema: supabase/schema/live (prevalece sobre migrações).
+
+## Validação
+- Validado com documentos reais: conta corrente × 9 extratos; cartão × 10 faturas (jan–set ≤1,4%; dez/25 +13% sem explicação); backup/restore.
+- Testado, aguardando Hugo: v0.10–v0.14 (Início, Plano, Meta, Fixas, Cartão), simulações.
+- Não testado: RLS cruzada com o login da Juliana; navegador/celular real do Hugo; fechamento de mês (nenhum fechado).
+
+## Achados de segurança (12/11, revisão do código exportado — nada alterado)
+- pluggy-sync aceita o token também por ?token= na URL (pode ir para logs) e compara tokens com === (não tempo constante); idem pluggy-diag e backup-export.
+- handle_new_auth_user: se nenhum membro tiver auth_user_id, o primeiro cadastro vira owner com qualquer e-mail. Hoje sem risco (ambos vinculados); corrigir exigindo e-mail.
+- Funções SECURITY DEFINER: todas com search_path=public. anon executa só utilitárias inofensivas.
+
+## Próxima ação
+Hugo: abrir o app no celular e validar v0.10–v0.14; revisar 11 pendentes; decidir orçamento/meta. Técnica: ver ROADMAP.

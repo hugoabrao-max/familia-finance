@@ -225,8 +225,8 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 ### 8.2 Técnicas (Claude Code pode executar)
 | Prioridade | Pendência |
 |---|---|
-| P0 | ~~Criar repositório Git com todo o código e esquema~~ — feito localmente em 12/11/2026; falta publicar no GitHub (privado) |
-| P0 | Atualizar `project_docs` defasados: `PROJECT_STATE` (cabeçalho ainda diz v0.3), `DEPLOYMENT` (backup ainda descrito como semanal; cron de sync antigo), `ROADMAP` |
+| P0 | ~~Criar repositório Git com todo o código e esquema~~ — feito 12/11/2026: github.com/hugoabrao-max/familia-finance (privado) |
+| P0 | ~~Atualizar `project_docs` defasados (`PROJECT_STATE`, `DEPLOYMENT`, `ROADMAP`)~~ — feito 12/11/2026 (também `ARCHITECTURE`, `INTEGRATIONS`, `SECURITY`, `CHANGELOG`) |
 | P1 | Teste de RLS cruzada com o login da Juliana (ela vê tudo, edita categorias/orçamento/metas, **não fecha meses**) |
 | P1 | Investigar diferença de dez/25 no cartão (+13%) |
 | P1 | `restore-check` sem agendamento — criar rotina periódica (ex.: semanal) |
