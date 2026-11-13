@@ -19,8 +19,9 @@ begin
   update transactions set category_id = p_category, category_source = 'ajuste_usuario', category_confidence = 1.0,
          review_status = 'reviewed', rule_id = null where id = p_tx;
   if p_create_rule then
-    v_pattern := norm_text(coalesce(t.counterpart_name, split_part(t.description, '   ', 2), t.description));
-    if length(v_pattern) >= 4 then
+    v_pattern := norm_text(coalesce(nullif(btrim(t.counterpart_name), ''), nullif(btrim(split_part(t.description, '   ', 2)), ''), t.description));
+    -- sem nome de estabelecimento, uma descrição que começa com termo de operação (pix, boleto, pagamento...) geraria regra ampla demais
+    if length(v_pattern) >= 4 and not (nullif(btrim(t.counterpart_name), '') is null and v_pattern ~ '^(pix|ted|doc|pagamento|pagto|pag|boleto|transferencia|transf|saque|deposito|dep|tarifa|debito|deb|credito|cred|compra|estorno|resgate|aplicacao|rendimento)( |$)') then
       insert into classification_rules (rule_type, pattern, category_id, origin, confidence, priority, example)
         values ('merchant_contains', v_pattern, p_category, 'usuario', 0.900, 90, t.description)
       on conflict (rule_type, pattern) do update set category_id = excluded.category_id, origin = 'usuario', confidence = 0.900,

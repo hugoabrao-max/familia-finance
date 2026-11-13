@@ -1,9 +1,10 @@
 // Family Finance — frontend (v0.16) — Railway Function (Bun)
 // Rotas: /  (SPA)  /manifest.json  /sw.js  /health
 
-const SUPABASE_URL = "https://hrsinekxrfiphlhpoewp.supabase.co";
-const ANON_KEY = "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
-const APP_VERSION = "0.21.0";
+// Instalação: SUPABASE_URL e SUPABASE_ANON_KEY vêm do ambiente (Railway → Variables); o padrão é a instalação da família Abrão.
+const SUPABASE_URL = (Bun.env.SUPABASE_URL || "https://hrsinekxrfiphlhpoewp.supabase.co").replace(/\/+$/, "");
+const ANON_KEY = Bun.env.SUPABASE_ANON_KEY || "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
+const APP_VERSION = "0.21.1";
 
 const MANIFEST = JSON.stringify({
   name: "Family Finance", short_name: "Family Finance", start_url: "/", scope: "/",
@@ -381,7 +382,7 @@ window.openTx=(id)=>{const r=(window._rows||[]).find(x=>x.id===id);if(!r)return;
   const opts=S.cats.map(c=>'<option value="'+c.id+'"'+(c.id===r.category_id?' selected':'')+'>'+(c.parent_id?'  ↳ ':'')+esc(c.name)+'</option>').join('');
   openSheet('<div class="row"><b>'+esc(r.description)+'</b><span class="num '+(Number(r.amount)<0?'neg':'pos')+'" style="font-weight:600">'+brl(r.amount)+'</span></div>'+
    '<p class="small muted">'+fmtD(r.event_date)+'/'+r.event_date.slice(0,4)+' · '+esc(r.account_name)+(r.counterpart_name?' · '+esc(r.counterpart_name):'')+(r.installment_total?' · parcela '+r.installment_number+'/'+r.installment_total:'')+'</p>'+
-   '<p class="small">Origem: '+esc(r.source==='pluggy'?'Open Finance (Santander via Pluggy)':r.source)+' · Classificação: '+esc(srcLabel(r.category_source))+(r.category_confidence?' · confiança '+Math.round(r.category_confidence*100)+'%':'')+'</p>'+
+   '<p class="small">Origem: '+esc(r.source==='pluggy'?'Open Finance (via Pluggy)':r.source)+' · Classificação: '+esc(srcLabel(r.category_source))+(r.category_confidence?' · confiança '+Math.round(r.category_confidence*100)+'%':'')+'</p>'+
    '<select id="cx">'+opts+'</select><label class="chk" style="margin:10px 0"><input type="checkbox" id="rule"> Aplicar a lançamentos iguais no futuro (cria regra)</label>'+
    '<div class="row"><button class="ghost" onclick="closeSheet()">Cancelar</button><button onclick="saveTx(\\''+r.id+'\\')">Salvar categoria</button></div>');
 }
@@ -398,7 +399,8 @@ async function renderCartao(q){const _rt=RT;
     sb.from('v_tx').select('bill_closing_date,holder_name,amount').eq('account_subtype','CREDIT_CARD').gte('bill_closing_date',new Date(Date.now()-75*864e5).toISOString().slice(0,10))]);
   const B=bills||[];const cur=B.filter(b=>b.status!=='paga').sort((a,b)=>a.closing_date<b.closing_date?-1:1);
   const byH={};(hold||[]).forEach(r=>{const k=r.bill_closing_date+'|'+(r.holder_name||'?');byH[k]=(byH[k]||0)-Number(r.amount)});
-  const holders=(c)=>['Hugo','Juliana'].map(h=>byH[c+'|'+h]?'<a class="pill" style="text-decoration:none;margin-right:4px" href="#lancamentos?bill='+c+'&holder='+h+'">'+h+' '+brl0(byH[c+'|'+h])+'</a>':'').join('');
+  const HN=[...new Set((hold||[]).map(r=>r.holder_name).filter(Boolean))].sort();
+  const holders=(c)=>HN.map(h=>byH[c+'|'+h]?'<a class="pill" style="text-decoration:none;margin-right:4px" href="#lancamentos?bill='+c+'&holder='+h+'">'+h+' '+brl0(byH[c+'|'+h])+'</a>':'').join('');
   const st={aberta:'<span class="pill">aberta</span>',fechada:'<span class="pill warn">fechada · a pagar</span>',paga:'<span class="pill">paga</span>'};
   const src={pdf:'fechamento confirmado pelo PDF',pluggy_parcelas:'fechamento identificado pelas parcelas',estimado:'fechamento estimado'};
   const big=(b)=>'<div class="hero" style="margin-bottom:10px"><div class="row"><div class="small muted">Fatura · fecha '+fmtD(b.closing_date)+' · vence '+fmtD(b.due_date)+'</div>'+st[b.status]+'</div><div class="big num">'+brl(b.total_lancamentos)+'</div><div class="small muted">'+b.n_lancamentos+' lançamentos · '+src[b.source]+'</div><div style="margin-top:8px">'+holders(b.closing_date)+'</div><p style="margin:10px 0 0"><a href="#lancamentos?bill='+b.closing_date+'">Ver lançamentos ›</a></p></div>';
@@ -407,7 +409,7 @@ async function renderCartao(q){const _rt=RT;
    cur.map(big).join('')+
    '<h2>Faturas anteriores</h2><div class="list">'+B.filter(b=>b.status==='paga').map(b=>{const ref=b.pdf_total??b.paid_amount;const d=ref!=null?Number(b.total_lancamentos)-Number(ref):null;
      return '<a class="item" style="text-decoration:none;color:inherit" href="#lancamentos?bill='+b.closing_date+'"><div class="d"><div class="t">'+mesNome(b.competence_month.slice(0,7))+'</div><div class="s">fechou '+fmtD(b.closing_date)+' · pago '+brl0(b.paid_amount)+(d!=null&&Math.abs(d)>=1?' · diferença '+brl0(d):'')+'</div></div><div class="a num">'+brl0(ref??b.total_lancamentos)+'</div></a>'}).join('')+'</div>'+
-   '<p class="small muted">A Pluggy não envia as faturas do Santander. O total por fatura é calculado pelos lançamentos e pode diferir do valor pago em até ~1% (compras próximas ao fechamento). O valor oficial é o débito na conta corrente.</p></div>';
+   '<p class="small muted">A Pluggy não envia as faturas fechadas do cartão. O total por fatura é calculado pelos lançamentos e pode diferir do valor pago em até ~1% (compras próximas ao fechamento). O valor oficial é o débito na conta corrente.</p></div>';
 }
 
 // ---------- Plano: painel de 4 cards (Orçamento, Meta de sobra, Contas fixas, Simular) + Reservas + Patrimônio ----------
@@ -455,7 +457,7 @@ async function renderOrcamento(q){const _rt=RT;
    '<div class="panel"><div class="row"><b>'+restaTxt(O.livre)+'</b><span class="pill'+(tG>tO?' bad':tG>tO*ritmo*1.1?' warn':'')+'">'+(tO?Math.round(tG/tO*100):0)+'% gasto</span></div>'+bar(tG,tO)+
     '<div class="small muted" style="margin-top:6px">Gasto '+brl0(tG)+' de '+brl0(tO)+(isCur?' · ritmo esperado hoje '+brl0(tO*ritmo):'')+'</div>'+
     ((totP+totC)>0?'<div class="small muted">'+(futuro?'Já comprometido':'Ainda comprometido')+': '+brl0(totP+totC)+' (parcelas do cartão '+brl0(totP)+(futuro?' a lançar':' já lançadas')+' · contas fixas '+(futuro?'previstas':'ainda não pagas')+' '+brl0(totC)+')</div>':'')+
-    '<details class="small" style="margin-top:6px"><summary class="muted" style="cursor:pointer">Como é calculado</summary><p class="muted" style="margin:6px 0 0">Restam = orçado − gasto'+(futuro?'':' já feito')+' − contas fixas '+(futuro?'previstas':'ainda não pagas')+(futuro?' − parcelas do cartão a lançar':'')+'. Valores “proposta” = mediana de mai–out/26.</p></details></div>'+
+    '<details class="small" style="margin-top:6px"><summary class="muted" style="cursor:pointer">Como é calculado</summary><p class="muted" style="margin:6px 0 0">Restam = orçado − gasto'+(futuro?'':' já feito')+' − contas fixas '+(futuro?'previstas':'ainda não pagas')+(futuro?' − parcelas do cartão a lançar':'')+'. Valores “proposta” = sugestão calculada pelo histórico de gastos.</p></details></div>'+
    '<div class="list" style="margin-top:10px">'+B.map((b,i)=>'<div class="item" onclick="editBudget('+i+')"><div class="d" style="flex:1"><div class="t">'+esc(b.group_name)+(b.source==='proposta'?' <span class="pill" style="font-size:11px">proposta</span>':'')+'</div>'+bar(Number(b.gasto),Number(b.orcado))+'<div class="s">'+brl0(b.gasto)+' de '+brl0(b.orcado)+'</div>'+(MC[b.group_id]&&(MC[b.group_id].p+MC[b.group_id].c)>0?'<div class="s" style="white-space:normal">comprometido: '+(MC[b.group_id].p?brl0(MC[b.group_id].p)+' em '+MC[b.group_id].n+' parcela(s)'+(futuro?' a lançar':' já lançadas'):'')+(MC[b.group_id].p&&MC[b.group_id].c?' · ':'')+(MC[b.group_id].c?brl0(MC[b.group_id].c)+' de contas fixas ('+esc(MC[b.group_id].nomes)+')':'')+'</div>':'')+'</div><div class="a num small">'+restaTxt(sl(b))+'</div></div>').join('')+'</div>'+
    '<p class="small muted">Toque numa categoria para mudar o valor: só neste mês ou deste mês em diante. Escolha um mês futuro no seletor para ver o que já está comprometido nele.</p>'+
    '<h2>Parcelas futuras no cartão</h2><div class="list">'+(fk.length?fk.map(k=>'<a class="item" href="#orcamento?month='+k.slice(0,7)+'" style="text-decoration:none;color:inherit"><div class="d"><div class="t">'+mesNome(k.slice(0,7))+'</div></div><div class="a num">'+brl0(fm[k])+' ›</div></a>').join(''):'<div class="item">Nenhuma parcela futura.</div>')+'</div></div>';
@@ -797,7 +799,7 @@ boot();
 </script>
 </body></html>`;
 
-const CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' " + SUPABASE_URL + " wss://hrsinekxrfiphlhpoewp.supabase.co; img-src 'self' data:; manifest-src 'self'; frame-ancestors 'none'";
+const CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' " + SUPABASE_URL + " " + SUPABASE_URL.replace(/^https:/, "wss:") + "; img-src 'self' data:; manifest-src 'self'; frame-ancestors 'none'";
 Bun.serve({
   port: Number(Bun.env.PORT || 3000),
   fetch(req) {
