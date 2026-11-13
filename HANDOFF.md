@@ -76,7 +76,7 @@ Railway "restore-check" (on deploy) ─► restaura em esquema restore_test e co
 | Serviço | Id | Tipo | Agendamento | Último deploy |
 |---|---|---|---|---|
 | `web` | `58aaaa85-4999-4153-a676-9bd9ccc60aef` | Serviço construído do GitHub (`app/Dockerfile`, Bun 1.2.19), domínio `familia-finance.up.railway.app` | contínuo; publica a cada push em `main` que altere `app/**` | 12/11/2026 — SUCCESS (v0.16.0) |
-| `app` | `022db954-6ad0-4ac5-a8b2-a08946bc16da` | Function Bun antiga (limite de 96 KB), **sem domínio, reserva** | — | 12/11/2026 19:18 UTC — SUCCESS (v0.15.0) |
+| ~~`app`~~ | ~~`022db954-…`~~ | Function Bun antiga — **removida em 13/11/2026** (pedido do Hugo) | — | — |
 | `backup` | `4d7ec7db-f037-4859-8af7-693de947c69c` | Function Bun (script) | `0 9 * * *` (05:00 Cuiabá) | 07/11/2026 — SUCCESS |
 | `restore-check` | `6e7fa322-bc40-451b-9bdf-f4a49e9311c3` | Function Bun (script) | `0 10 * * 0` (domingo 06:00 Cuiabá) e a cada redeploy | 07/11/2026 — SUCCESS |
 
@@ -256,7 +256,7 @@ familia-finance/
 ├── CLAUDE.md                     # regras de trabalho
 ├── HANDOFF.md                    # este relatório
 ├── docs/                         # export dos 12 project_docs
-├── app/src/app.ts                # frontend (Railway serviço app)
+├── app/src/app.ts                # frontend (Railway serviço web, construído do GitHub)
 ├── railway/backup.ts             # Railway serviço backup
 ├── railway/restore-check.ts      # Railway serviço restore-check
 ├── supabase/functions/<slug>/    # Edge Functions

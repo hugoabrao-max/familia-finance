@@ -32,7 +32,7 @@ O contrato de negócio está em `HANDOFF.md` §5 e `docs/FINANCIAL_RULES.md`. **
 
 ## Deploy
 
-- **Frontend:** subir `APP_VERSION`, rodar `tests/ui` (ver README), commit e push em `main`. O serviço `web` do Railway constrói sozinho (só quando muda algo em `app/`). Conferir: `list-deployments` do `web` até SUCCESS; `/health` com a nova versão; md5 da página servida igual ao do app local no mesmo commit (do sandbox, via `net.http_get` no Supabase). Não usar `update-function-source-code`: Functions têm limite de 96 KB e o app já passou disso. O serviço `app` (Function antiga, sem domínio) é só reserva.
+- **Frontend:** subir `APP_VERSION`, rodar `tests/ui` (ver README), commit e push em `main`. O serviço `web` do Railway constrói sozinho (só quando muda algo em `app/`). Conferir: `list-deployments` do `web` até SUCCESS; `/health` com a nova versão; md5 da página servida igual ao do app local no mesmo commit (do sandbox, via `net.http_get` no Supabase). Não usar `update-function-source-code`: Functions têm limite de 96 KB e o app já passou disso. O serviço `app` antigo (Function) foi removido em 13/11/2026; para voltar atrás, use o rollback de deploy do `web`.
 - **Banco:** `apply_migration` (MCP Supabase); depois re-exportar o objeto afetado para `supabase/schema/live/` e a migração para `supabase/schema/migrations/`.
 - **Edge Functions:** `deploy_edge_function` mantendo o `verify_jwt` atual (ver `supabase/functions/README.md`).
 

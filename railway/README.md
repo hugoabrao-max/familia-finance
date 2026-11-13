@@ -1,12 +1,11 @@
 # Railway Functions — familia-finance
 
 Project `familia-finance` (`9e62e7a6-4137-4a19-b6f6-8a0ab822dcc0`), environment `production` (`f79eeeae-5238-4de5-a761-97746d6b3a13`).
-All three services are Railway Functions (Bun), image `ghcr.io/railwayapp/function-bun:1.4.4`, region `iad`, 1 replica.
+The two services below are Railway Functions (the old `app` Function was deleted on 13/11/2026; the frontend runs on the `web` service, built from GitHub — see `../docs/DEPLOYMENT.md`) (Bun), image `ghcr.io/railwayapp/function-bun:1.4.4`, region `iad`, 1 replica.
 
 | Service | Service id | Local source | Schedule | Restart policy |
 |---|---|---|---|---|
 | `web` | `58aaaa85-4999-4153-a676-9bd9ccc60aef` | built from GitHub `app/` (`app/Dockerfile`) | none (HTTP server, domain `familia-finance.up.railway.app`; deploys on push to `main` touching `app/**`) | ON_FAILURE (5) |
-| `app` | `022db954-6ad0-4ac5-a8b2-a08946bc16da` | old Function copy of `../app/src/app.ts` (v0.15.0) | none — no domain since 12/11/2026, kept as fallback (Functions are limited to 96 KB per file) | default |
 | `backup` | `4d7ec7db-f037-4859-8af7-693de947c69c` | `backup.ts` | cron `0 9 * * *` (UTC) | NEVER |
 | `restore-check` | `6e7fa322-bc40-451b-9bdf-f4a49e9311c3` | `restore-check.ts` | cron `0 10 * * 0` (UTC, domingo 06:00 Cuiabá; desde 12/11/2026) e também a cada deploy/redeploy | NEVER |
 
