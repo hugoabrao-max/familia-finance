@@ -1,8 +1,8 @@
-# Estado real — 12/11/2026 (frontend v0.20.0 · banco migração 0029)
+# Estado real — 12/11/2026 (frontend v0.21.0 · banco migração 0029)
 Status: implementado → testado → validado (documentos reais) → publicado. Nada é "resolvido" só porque compila.
 
 ## Produção
-- Frontend v0.20.0 no ar em 12/11 — Family Finance (nome e ícone novos; redesenho completo, Fases 1–5: voltar devolve o lugar, carregando/erro, fuso de Cuiabá, confirmações, Desfazer; Início com cards e detalhe de categoria; Lançamentos por dia com totais e "carregar mais", busca ao digitar, Revisão em lote por estabelecimento criando regra; Plano em 4 cards, Orçamento com "só este mês/deste mês em diante", Contas fixas com financiamentos, Reservas; tema no app, notebook em grade, teclado/leitor de tela, vocabulário novo). Publicado pelo serviço web do Railway, construído do GitHub (limite de 96 KB das Functions); página servida idêntica à testada; /health 0.20.0.
+- Frontend v0.21.0 no ar em 13/11 — Family Finance (nome e ícone novos; visual Cerrado; redesenho completo, Fases 1–5: voltar devolve o lugar, carregando/erro, fuso de Cuiabá, confirmações, Desfazer; Início com cards e detalhe de categoria; Lançamentos por dia com totais e "carregar mais", busca ao digitar, Revisão em lote por estabelecimento criando regra; Plano em 4 cards, Orçamento com "só este mês/deste mês em diante", Contas fixas com financiamentos, Reservas; tema no app, notebook em grade, teclado/leitor de tela, vocabulário novo). Publicado pelo serviço web do Railway, construído do GitHub (limite de 96 KB das Functions); página servida idêntica à testada; /health 0.21.0.
 - Banco: 33 migrações (0001–0029; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
 - Sincronização: pg_cron 4×/dia (15 1,3,10,22 UTC) + pos-sync 10 min depois; últimas execuções SUCCESS.
 - Backup diário 09:00 UTC → bucket Railway, hash por releitura; último SUCCESS 12/11 09:03 UTC (1,42 MB). restore-check semanal (domingo 10:00 UTC) desde 12/11, comparando o restaurado com o próprio backup (0028).
