@@ -1,14 +1,17 @@
-# Estado real — 12/11/2026 (frontend v0.21.0 · banco migração 0029)
+# Estado real — 13/11/2026 (frontend v0.21.1 · banco migração 0030)
 Status: implementado → testado → validado (documentos reais) → publicado. Nada é "resolvido" só porque compila.
 
 ## Produção
-- Frontend v0.21.0 no ar em 13/11 — Family Finance (nome e ícone novos; visual Cerrado; redesenho completo, Fases 1–5: voltar devolve o lugar, carregando/erro, fuso de Cuiabá, confirmações, Desfazer; Início com cards e detalhe de categoria; Lançamentos por dia com totais e "carregar mais", busca ao digitar, Revisão em lote por estabelecimento criando regra; Plano em 4 cards, Orçamento com "só este mês/deste mês em diante", Contas fixas com financiamentos, Reservas; tema no app, notebook em grade, teclado/leitor de tela, vocabulário novo). Publicado pelo serviço web do Railway, construído do GitHub (limite de 96 KB das Functions); página servida idêntica à testada; /health 0.21.0.
-- Banco: 33 migrações (0001–0029; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
+- Frontend v0.21.1 no ar em 13/11 — Family Finance (nome e ícone novos; visual Cerrado; redesenho completo, Fases 1–5: voltar devolve o lugar, carregando/erro, fuso de Cuiabá, confirmações, Desfazer; Início com cards e detalhe de categoria; Lançamentos por dia com totais e "carregar mais", busca ao digitar, Revisão em lote por estabelecimento criando regra; Plano em 4 cards, Orçamento com "só este mês/deste mês em diante", Contas fixas com financiamentos, Reservas; tema no app, notebook em grade, teclado/leitor de tela, vocabulário novo). Publicado pelo serviço web do Railway, construído do GitHub (limite de 96 KB das Functions); página servida idêntica à testada; /health 0.21.1.
+- Banco: 34 migrações (0001–0030; numeração 0006–0009 repetida, use o version), 42 tabelas, 22 views security_invoker, RLS em todas.
 - Sincronização: pg_cron 4×/dia (15 1,3,10,22 UTC) + pos-sync 10 min depois; últimas execuções SUCCESS.
 - Backup diário 09:00 UTC → bucket Railway, hash por releitura; último SUCCESS 12/11 09:03 UTC (1,42 MB). restore-check semanal (domingo 10:00 UTC) desde 12/11, comparando o restaurado com o próprio backup (0028).
 - Contas fixas: 30 ativas, R$ 50.300,14/mês — desde 12/11 incluem os financiamentos imobiliários (R$ 7.377,86, decisão do Hugo); as 24 sugeridas foram aceitas pelo Hugo em 12/11.
 - Dados: 3.550 lançamentos (05/11/2025 → 11/11/2026); 638 regras; 49 categorias; 11 pendentes (7 out/26, 4 nov/26).
 - Usuários: Hugo (owner) e Juliana (member), ambos vinculados ao Auth.
+
+## Kit para outra família (13/11/2026)
+install/ instala o sistema do zero num projeto Supabase novo, sem dados da família (testado em Postgres local; ainda não instalado em projeto real). Instalação do amigo do Hugo: nas contas dele, aguardando ele criar Supabase, Railway, GitHub e Pluggy.
 
 ## Repositório (novo em 12/11/2026)
 github.com/hugoabrao-max/familia-finance (privado). Conteúdo exportado da produção e conferido: app.ts/backup/restore-check byte a byte com o Railway; 29 migrações, 49 definições vivas e 12 docs por md5 com o banco; Edge Functions sem checksum (parse OK). Fonte de verdade do esquema: supabase/schema/live (prevalece sobre migrações).
