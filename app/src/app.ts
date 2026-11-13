@@ -3,11 +3,11 @@
 
 const SUPABASE_URL = "https://hrsinekxrfiphlhpoewp.supabase.co";
 const ANON_KEY = "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
-const APP_VERSION = "0.20.0";
+const APP_VERSION = "0.21.0";
 
 const MANIFEST = JSON.stringify({
   name: "Family Finance", short_name: "Family Finance", start_url: "/", scope: "/",
-  display: "standalone", background_color: "#F5F7F5", theme_color: "#0F6E6E", lang: "pt-BR",
+  display: "standalone", background_color: "#EEF0EA", theme_color: "#EEF0EA", lang: "pt-BR",
   id: "/", description: "Finanças da família", orientation: "any",
   icons: [{ src: "/icon-192.png?v=2", sizes: "192x192", type: "image/png", purpose: "any" }, { src: "/icon.png?v=2", sizes: "512x512", type: "image/png", purpose: "any" }, { src: "/icon.png?v=2", sizes: "512x512", type: "image/png", purpose: "maskable" }],
 });
@@ -24,20 +24,20 @@ const HTML = `<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0F6E6E">
+<meta name="theme-color" content="#EEF0EA">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Family Finance</title>
 <meta name="apple-mobile-web-app-title" content="Family Finance"><meta name="application-name" content="Family Finance">
 <link rel="manifest" href="manifest.json?v=2"><link rel="icon" type="image/png" href="icon-192.png?v=2"><link rel="apple-touch-icon" href="icon.png?v=2">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#F5F7F5;--panel:#FFFFFF;--ink:#17241F;--ink2:#5B6B64;--line:#DCE3DF;--acc:#0F6E6E;--acc2:#E3F0EE;--pos:#237A48;--neg:#B5432D;--warn:#9A6B00;--tab:#FFFFFF;--wbg:#FFF4D6;--nbg:#FBE4DE;
+:root{--bg:#EEF0EA;--panel:#FAFBF7;--ink:#1D261F;--ink2:#5E6A60;--line:#D6DCD1;--acc:#33583F;--acc2:#DDE6DA;--pos:#2F6E3E;--neg:#B4442A;--warn:#A36B00;--tab:#FAFBF7;--wbg:#F2E4BE;--nbg:#F1D9CF;--hero:#33583F;--hero-ink:#FFFFFF;--hero-sub:#CFE0CF;--ouro:#FFE29A;--on-acc:#FFFFFF;
  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme: dark){:root:not([data-theme=light]){--bg:#101715;--panel:#182220;--ink:#EEF3F0;--ink2:#9DB0A7;--line:#2A3733;--acc:#5FC2B8;--acc2:#1C3331;--pos:#6FCF8E;--neg:#F28B6F;--warn:#E3B94C;--tab:#131C19;--wbg:#3A2F14;--nbg:#3D211B;color-scheme:dark}}
-:root[data-theme=dark]{--bg:#101715;--panel:#182220;--ink:#EEF3F0;--ink2:#9DB0A7;--line:#2A3733;--acc:#5FC2B8;--acc2:#1C3331;--pos:#6FCF8E;--neg:#F28B6F;--warn:#E3B94C;--tab:#131C19;--wbg:#3A2F14;--nbg:#3D211B;color-scheme:dark}
-*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "IBM Plex Sans",system-ui,sans-serif;font-feature-settings:"tnum"}
+@media (prefers-color-scheme: dark){:root:not([data-theme=light]){--bg:#111612;--panel:#1A211C;--ink:#E7ECE5;--ink2:#9FAAA1;--line:#2B352E;--acc:#8DC29C;--acc2:#1F2C23;--pos:#7CC58E;--neg:#F08B6F;--warn:#E2B651;--tab:#151B17;--wbg:#3A3016;--nbg:#3D221B;--hero:#24402D;--hero-ink:#F2F6F1;--hero-sub:#B8CDBB;--ouro:#FFD97A;--on-acc:#0F1A12;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#111612;--panel:#1A211C;--ink:#E7ECE5;--ink2:#9FAAA1;--line:#2B352E;--acc:#8DC29C;--acc2:#1F2C23;--pos:#7CC58E;--neg:#F08B6F;--warn:#E2B651;--tab:#151B17;--wbg:#3A3016;--nbg:#3D221B;--hero:#24402D;--hero-ink:#F2F6F1;--hero-sub:#B8CDBB;--ouro:#FFD97A;--on-acc:#0F1A12;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 body{padding-bottom:calc(72px + env(safe-area-inset-bottom,0px))}
 .wrap{max-width:720px;margin:0 auto;padding:16px}
 h1{font-size:22px;font-weight:600;margin:4px 0 12px;letter-spacing:-.01em}h2{font-size:15px;font-weight:600;margin:20px 0 8px;color:var(--ink2)}
@@ -89,12 +89,30 @@ label.chk{display:flex;gap:8px;align-items:center;font-size:14px}
  .login{margin-top:18vh}
 }
 @media (prefers-reduced-motion: no-preference){.sheet .card{animation:up .18s ease-out}@keyframes up{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}}
+/* ---- visual Cerrado (v0.21) ---- */
+h1{font-size:27px;font-weight:800;letter-spacing:-.025em}h2{font-size:15px;font-weight:700;color:var(--ink)}
+.panel,.hero,.kpi,.wrap .card{border:0;border-radius:12px;box-shadow:none;background:var(--panel)}
+.num,.kpi .v,.card .v{font-variant-numeric:normal}button{color:var(--on-acc)}
+.list{border:0;border-radius:12px}
+.card .v,.hero .big{font-weight:800;letter-spacing:-.02em}.card .k{font-size:12.5px;font-weight:600}
+.wrap .card.sobra,.wrap .card.destaque{background:var(--hero);color:var(--hero-ink)}
+.card.sobra .k,.card.sobra .s,.card.sobra .go,.card.destaque .k,.card.destaque .s{color:var(--hero-sub)}
+.wrap .card.sobra .v,.wrap .card.destaque .v,.card.destaque .s b,.card.destaque .restam,.card.destaque .passou{color:var(--ouro)}
+.wrap .card.sobra .v.neg{color:#FFB4A1}
+.pill{border-radius:6px;font-weight:600}
+button{border-radius:10px}button.ghost{border-color:var(--acc);color:var(--acc)}
+input,select{border-radius:10px;border-color:var(--line)}
+.tabs a.on{font-weight:700}.tabs a span svg{display:block;margin:0 auto 2px}
+.bar{height:6px;background:var(--line)}
+.need{border-radius:12px}
+.wrap>.row{gap:8px}.wrap>.row>h1{flex:0 1 auto;min-width:0}#mp{width:auto;flex:0 0 auto;font-size:15px;padding-right:6px}
+@media (min-width:1000px){.tabs a span svg{margin:0}}
 </style>
 </head>
 <body>
 <div id="app"><div class="center">Carregando…</div></div>
 <nav class="tabs" id="tabs" style="display:none">
- <a href="#inicio"><span>◔</span>Início</a><a href="#lancamentos"><span>≡</span>Lançamentos</a><a href="#cartao"><span>▭</span>Cartão</a><a href="#plano"><span>◎</span>Plano</a><a href="#revisao"><span>✎</span>Revisão<b id="pend"></b></a><a href="#operacao"><span>⚙</span>Mais</a>
+ <a href="#inicio"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v9.5h13V10"/><path d="M10 19.5v-5h4v5"/></svg></span>Início</a><a href="#lancamentos"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg></span>Lançamentos</a><a href="#cartao"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span>Cartão</a><a href="#plano"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".8"/></svg></span>Plano</a><a href="#revisao"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5 9 17.5 20 6.5"/></svg></span>Revisão<b id="pend"></b></a><a href="#operacao"><span><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/></svg></span>Mais</a>
 </nav>
 <div class="sheet" id="sheet" onclick="if(event.target===this)closeSheet()"><div class="card" id="sheetBody" role="dialog" aria-modal="true"></div></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -415,7 +433,7 @@ async function renderPlano(){const _rt=RT;
   const sobraOrc=(sb0?.receita_mensal||0)-O.tO;
   if(_rt!==RT)return;$('#app').innerHTML='<div class="wrap"><div class="row"><h1>Plano</h1>'+monthPicker(true)+'</div>'+
    '<div class="cards2">'+
-    '<a class="card" href="#orcamento?month='+m+'"><div class="k">Orçamento de '+esc(mesAbv(m))+' ›</div><div class="v num '+(O.livre>=0?'restam':'passou')+'">'+brl0(Math.abs(O.livre))+'</div><div class="s"><b>'+(O.livre>=0?'restam':'passou')+'</b> · gasto '+brl0(O.tG)+' de '+brl0(O.tO)+(O.totP+O.totC>0?' · '+brl0(O.totP+O.totC)+' comprometido':'')+'</div></a>'+
+    '<a class="card destaque" href="#orcamento?month='+m+'"><div class="k">Orçamento de '+esc(mesAbv(m))+' ›</div><div class="v num '+(O.livre>=0?'restam':'passou')+'">'+brl0(Math.abs(O.livre))+'</div><div class="s"><b>'+(O.livre>=0?'restam':'passou')+'</b> · gasto '+brl0(O.tG)+' de '+brl0(O.tO)+(O.totP+O.totC>0?' · '+brl0(O.totP+O.totC)+' comprometido':'')+'</div></a>'+
     '<a class="card" href="#meta"><div class="k">Meta de sobra ›</div><div class="v num">'+(ps?brl0(ps.value)+'<span class="small muted">/mês</span>':'definir')+'</div><div class="s">'+(sb0?'o orçamento atual deixa '+brl0(sobraOrc):'quanto sobra por mês')+'</div></a>'+
     '<a class="card" href="#fixas"><div class="k">Contas fixas ›</div><div class="v num">'+brl0(fT)+'<span class="small muted">/mês</span></div><div class="s">'+(O.isCur||m<=hoje?'a pagar em '+esc(mesAbv(hoje))+': '+brl0(fT-fP):fa.length+' contas')+(fSug?' · '+fSug+' para conferir':'')+'</div></a>'+
     '<a class="card" href="#simular"><div class="k">Simular ›</div><div class="v" style="font-size:16px;line-height:1.3">E se…?</div><div class="s">cortes, aportes, quitação, veículo, viagem'+(nSim?' · '+nSim+(nSim===1?' cenário salvo':' cenários salvos'):'')+'</div></a>'+
@@ -768,7 +786,7 @@ new MutationObserver(()=>a11y($('#app'))).observe($('#app'),{childList:true,subt
 document.addEventListener('keydown',(e)=>{const t=e.target;if((e.key==='Enter'||e.key===' ')&&t&&t.getAttribute&&t.getAttribute('role')==='button'&&t.tagName!=='BUTTON'){e.preventDefault();t.click()}});
 document.querySelectorAll('.tabs a span').forEach(x=>x.setAttribute('aria-hidden','true'));document.getElementById('tabs').setAttribute('aria-label','Menu');
 // ---------- tema escolhido no app (automático / claro / escuro) ----------
-const TEMA_COR={claro:'#0F6E6E',escuro:'#131C19'};
+const TEMA_COR={claro:'#EEF0EA',escuro:'#111612'};
 function aplicaTema(t){const r=document.documentElement;if(t==='claro')r.setAttribute('data-theme','light');else if(t==='escuro')r.setAttribute('data-theme','dark');else r.removeAttribute('data-theme');
   const m=document.querySelector('meta[name=theme-color]');if(m)m.setAttribute('content',t==='escuro'||(t!=='claro'&&matchMedia('(prefers-color-scheme: dark)').matches)?TEMA_COR.escuro:TEMA_COR.claro)}
 const temaAtual=()=>{try{return localStorage.getItem('ff-tema')||'auto'}catch(e){return 'auto'}};

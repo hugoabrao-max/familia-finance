@@ -81,12 +81,12 @@ function data(t, u) {
   ok('duplicidades: seção com aviso quando vazia', (await p.locator('#dup').count()) === 1 && txt.includes('Nenhuma duplicidade em aberto'));
   // tema
   await p.locator('#tema button', { hasText: 'Escuro' }).click();
-  ok('tema Escuro aplica na hora', await p.evaluate(() => document.documentElement.dataset.theme) === 'dark' && await p.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(16, 23, 21)');
+  ok('tema Escuro aplica na hora', await p.evaluate(() => document.documentElement.dataset.theme) === 'dark' && await p.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(17, 22, 18)');
   ok('botão marcado (aria-pressed)', await p.locator('#tema button[data-t=escuro]').getAttribute('aria-pressed') === 'true');
   await p.reload(); await idle(p);
-  ok('tema guardado após recarregar', await p.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(16, 23, 21)' && (await p.locator('#tema button.on').textContent()) === 'Escuro');
+  ok('tema guardado após recarregar', await p.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(17, 22, 18)' && (await p.locator('#tema button.on').textContent()) === 'Escuro');
   await p.locator('#tema button', { hasText: 'Automático' }).click();
-  ok('Automático volta ao do aparelho (claro)', await p.evaluate(() => !document.documentElement.hasAttribute('data-theme') && getComputedStyle(document.body).backgroundColor === 'rgb(245, 247, 245)'));
+  ok('Automático volta ao do aparelho (claro)', await p.evaluate(() => !document.documentElement.hasAttribute('data-theme') && getComputedStyle(document.body).backgroundColor === 'rgb(238, 240, 234)'));
   // duplicidades com item + link do alerta
   DUPS = [{ id: 1, kind: 'duplicate_suspect', status: 'open', created_at: '2026-11-12T12:00:00Z', detail: { description: 'IFD*CUPIM BAR', amount: -211.88, event_date: '2026-10-28' } }];
   await p.goto(APP + '#operacao?sec=dup'); await idle(p); await p.waitForTimeout(200);
@@ -121,9 +121,9 @@ function data(t, u) {
   await p.goto(APP + '#operacao'); await idle(p); await p.screenshot({ path: OUT + '/f5-mais-desk.png', fullPage: true });
   const secs = await p.$$eval('.secs > .sec', es => es.map(e => { const r = e.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), e.querySelector('h2')?.textContent] }));
   ok('notebook: seções em grade, lidas da esquerda para a direita', secs.length >= 4 && secs[0][1] === secs[1][1] && secs[0][0] < secs[1][0] && secs[2][1] > secs[0][1] && secs[2][0] === secs[0][0], JSON.stringify(secs));
-  ok('notebook: tema escuro do aparelho', await p.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(16, 23, 21)');
+  ok('notebook: tema escuro do aparelho', await p.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(17, 22, 18)');
   await p.locator('#tema button', { hasText: 'Claro' }).click();
-  ok('Claro vence o escuro do aparelho', await p.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(245, 247, 245)');
+  ok('Claro vence o escuro do aparelho', await p.evaluate(() => getComputedStyle(document.body).backgroundColor) === 'rgb(238, 240, 234)');
   ok('sem erros de JS (notebook)', errs.length === 0, errs.join(' | '));
   await ctx.close(); await b.close();
   for (const r of results) console.log(r.join('  '));

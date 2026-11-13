@@ -101,7 +101,7 @@ function data(t, u) {
   ({ ctx, p, errs } = await page({ width: 390, height: 844 }, 'dark'));
   await p.goto(APP + '#inicio'); await idle(p);
   const bg = await p.$eval('.need', e => getComputedStyle(e).backgroundColor);
-  ok('tema escuro: "Precisa de você" com fundo escuro', bg === 'rgb(58, 47, 20)', bg);
+  ok('tema escuro: "Precisa de você" com fundo escuro', bg === 'rgb(58, 48, 22)', bg);
   await p.screenshot({ path: OUT + '/f2-escuro.png' });
   await ctx.close();
   ({ ctx, p, errs } = await page({ width: 1366, height: 900 }));
