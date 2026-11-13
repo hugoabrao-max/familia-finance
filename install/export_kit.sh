@@ -28,6 +28,20 @@ for f in pluggy-sync member-invite backup-export; do mkdir -p "$DST"/supabase/fu
 sed -i 's#^const APP_URL = "https://[^"]*";#const APP_URL = (Deno.env.get("APP_URL") ?? "").replace(/\\/+$/, "");\nif (!APP_URL) console.error("Defina o segredo APP_URL com o endereço do app");#' "$DST"/supabase/functions/member-invite/index.ts
 grep -q 'Deno.env.get("APP_URL")' "$DST"/supabase/functions/member-invite/index.ts || { echo "ERRO: APP_URL não foi trocado" >&2; exit 3; }
 cp "$SRC"/install/CLAUDE-kit.md "$DST"/CLAUDE.md
+# chave de serviço: aceita o formato novo (SUPABASE_SECRET_KEYS) quando a antiga (SERVICE_ROLE) não existir
+python3 - "$DST"/supabase/functions <<'PY'
+import sys, os
+d = sys.argv[1]
+helper = 'const SVC_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || (() => { try { const k = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}"); return k.default || Object.values(k)[0] || ""; } catch { return ""; } })();\n'
+for f in ("pluggy-sync", "member-invite", "backup-export"):
+    p = os.path.join(d, f, "index.ts"); s = open(p, encoding="utf-8").read()
+    n = s.count('Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")')
+    assert n >= 1, (f, n)
+    s = s.replace('Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!', 'SVC_KEY').replace('Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")', 'SVC_KEY')
+    i = s.index("\nimport "); j = s.index("\n", s.rindex("\nimport ") + 1) + 1
+    s = s[:j] + helper + s[j:]
+    open(p, "w", encoding="utf-8").write(s)
+PY
 cp "$SRC"/railway/backup.ts "$SRC"/railway/restore-check.ts "$DST"/railway/ 2>/dev/null || true
 sed -i "s#familia-finance/#family-finance/#g" "$DST"/railway/backup.ts "$DST"/railway/restore-check.ts
 cp "$SRC"/install/LEIA-ME.md "$DST"/README.md

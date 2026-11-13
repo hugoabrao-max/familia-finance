@@ -2,7 +2,10 @@
 
 App de finanças da família: lê conta corrente, poupança, cartão e investimentos pelo Open Finance (Pluggy), classifica os lançamentos, mostra o mês, o orçamento, as contas fixas e a meta de sobra. Cada instalação é independente: banco de dados, app e conexão bancária próprios.
 
-## Jeito mais fácil: com o Claude
+## Jeito mais fácil: o instalador
+No Windows, rode `FamilyFinance-Instalador.exe`: ele pede os tokens do Supabase e da Netlify, seus dados e uma senha, e monta tudo sozinho (cerca de 5 minutos). No fim mostra o endereço do app. O app fica na **Netlify** (gratuita) em vez do Railway. Se o Windows avisar "O Windows protegeu o computador", clique em **Mais informações → Executar assim mesmo** (o programa não tem assinatura digital paga).
+
+## Com o Claude
 Se você usa o Claude Code (ou o Claude no computador com os conectores do Supabase e do Railway), abra esta pasta nele e peça: **"instale o Family Finance seguindo o README"**. O arquivo `CLAUDE.md` explica a instalação para ele; o Claude vai pedir só o que precisar de você, um passo por vez. O passo a passo abaixo é o mesmo, para fazer à mão.
 
 ## O que você precisa criar (todas no seu nome)
@@ -26,9 +29,11 @@ Nenhuma dessas contas precisa dos seus dados bancários para ser criada. A conex
 
 ### 2. Funções (Supabase → Edge Functions)
 No painel: Edge Functions → Deploy a new function → Via Editor; dê o nome exato da pasta e cole o conteúdo do `index.ts`. Publique as três funções da pasta `supabase/functions/`:
-- `pluggy-sync` (sincronização), com **Verify JWT desligado** (ela confere um token próprio);
-- `member-invite` (link de acesso para membros), com **Verify JWT ligado**;
-- `backup-export` (opcional), com **Verify JWT desligado**.
+- `pluggy-sync` (sincronização);
+- `member-invite` (link de acesso para membros);
+- `backup-export` (opcional).
+
+Nas três, deixe **Verify JWT desligado**: cada função confere sozinha quem está chamando (token próprio ou login do app), e a checagem automática do Supabase não aceita as chaves no formato novo.
 
 ### 3. App (Railway)
 1. No GitHub: New repository → nome `family-finance`, **Private** → Create. Na página do repositório, clique em "uploading an existing file" e arraste todo o conteúdo desta pasta (as pastas `app`, `install`, `supabase`, `railway` e os arquivos soltos) → Commit changes.

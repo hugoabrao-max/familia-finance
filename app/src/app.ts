@@ -4,7 +4,7 @@
 // Instalação: SUPABASE_URL e SUPABASE_ANON_KEY vêm do ambiente (Railway → Variables); o padrão é a instalação da família Abrão.
 const SUPABASE_URL = (Bun.env.SUPABASE_URL || "https://hrsinekxrfiphlhpoewp.supabase.co").replace(/\/+$/, "");
 const ANON_KEY = Bun.env.SUPABASE_ANON_KEY || "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
-const APP_VERSION = "0.21.1";
+const APP_VERSION = "0.22.0";
 
 const MANIFEST = JSON.stringify({
   name: "Family Finance", short_name: "Family Finance", start_url: "/", scope: "/",
@@ -800,6 +800,19 @@ boot();
 </body></html>`;
 
 const CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' " + SUPABASE_URL + " " + SUPABASE_URL.replace(/^https:/, "wss:") + "; img-src 'self' data:; manifest-src 'self'; frame-ancestors 'none'";
+// Exportação estática (instalador): EXPORT_STATIC=<pasta> grava o app como site estático e sai.
+if (Bun.env.EXPORT_STATIC) {
+  const d = Bun.env.EXPORT_STATIC.replace(/\/+$/, "");
+  await Bun.write(d + "/index.html", HTML);
+  await Bun.write(d + "/manifest.json", MANIFEST);
+  await Bun.write(d + "/icon.png", ICON);
+  await Bun.write(d + "/icon-192.png", ICON192);
+  await Bun.write(d + "/sw.js", SW);
+  await Bun.write(d + "/health.json", JSON.stringify({ ok: true, version: APP_VERSION }));
+  await Bun.write(d + "/_headers", "/*\n  Content-Security-Policy: " + CSP + "\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: no-referrer\n  Strict-Transport-Security: max-age=31536000\n/index.html\n  Cache-Control: no-cache\n/\n  Cache-Control: no-cache\n/sw.js\n  Service-Worker-Allowed: /\n/manifest.json\n  Content-Type: application/manifest+json\n");
+  console.log("app exportado em " + d);
+  process.exit(0);
+}
 Bun.serve({
   port: Number(Bun.env.PORT || 3000),
   fetch(req) {
