@@ -11,7 +11,7 @@ Status: implementado → testado → validado (documentos reais) → publicado. 
 - Usuários: Hugo (owner) e Juliana (member), ambos vinculados ao Auth.
 
 ## Kit para outra família (13/11/2026)
-install/ instala o sistema do zero num projeto Supabase novo, sem dados da família (testado em Postgres local; ainda não instalado em projeto real). Instalação do amigo do Hugo: nas contas dele, aguardando ele criar Supabase, Railway, GitHub e Pluggy.
+install/ instala o sistema do zero num projeto Supabase novo, sem dados da família (testado em Postgres local; ainda não instalado em projeto real). Instalação do amigo do Hugo: ele mesmo instala, nas contas dele, com o family-finance.zip entregue ao Hugo em 13/11 (Hugo não terá acesso aos dados dele).
 
 ## Repositório (novo em 12/11/2026)
 github.com/hugoabrao-max/familia-finance (privado). Conteúdo exportado da produção e conferido: app.ts/backup/restore-check byte a byte com o Railway; 29 migrações, 49 definições vivas e 12 docs por md5 com o banco; Edge Functions sem checksum (parse OK). Fonte de verdade do esquema: supabase/schema/live (prevalece sobre migrações).
