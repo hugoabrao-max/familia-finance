@@ -2,7 +2,10 @@
 
 App de finanças da família: lê conta corrente, poupança, cartão e investimentos pelo Open Finance (Pluggy), classifica os lançamentos, mostra o mês, o orçamento, as contas fixas e a meta de sobra. Cada instalação é independente: banco de dados, app e conexão bancária próprios.
 
-## Jeito mais fácil: com o Claude
+## Jeito mais fácil: abra o INSTALAR.html
+Dê dois cliques no arquivo `INSTALAR.html` desta pasta. Ele abre no navegador e guia a instalação passo a passo, com botões de copiar e links que vão direto para a tela certa. O app sai pronto para arrastar na Netlify: não precisa de GitHub nem Railway. Precisa só de uma conta no Supabase e uma na Netlify (as duas grátis) e, no final, a Pluggy.
+
+## Com o Claude
 Se você usa o Claude Code (ou o Claude no computador com os conectores do Supabase e do Railway), abra esta pasta nele e peça: **"instale o Family Finance seguindo o README"**. O arquivo `CLAUDE.md` explica a instalação para ele; o Claude vai pedir só o que precisar de você, um passo por vez. O passo a passo abaixo é o mesmo, para fazer à mão.
 
 ## O que você precisa criar (todas no seu nome)

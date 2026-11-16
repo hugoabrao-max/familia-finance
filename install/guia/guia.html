@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Instalar o Family Finance</title>
+<style>
+:root{--bg:#EEF0EA;--panel:#FAFBF7;--ink:#1D261F;--ink2:#5E6A60;--line:#D6DCD1;--acc:#33583F;--acc2:#DDE6DA;--ok:#2F6E3E;--warn:#A36B00;--wbg:#F2E4BE;--on-acc:#fff;--code:#F1F3EE}
+@media (prefers-color-scheme: dark){:root{--bg:#111612;--panel:#1A211C;--ink:#E7ECE5;--ink2:#9FAAA1;--line:#2B352E;--acc:#8DC29C;--acc2:#1F2C23;--ok:#7CC58E;--warn:#E2B651;--wbg:#3A3016;--on-acc:#0F1A12;--code:#141A16}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:760px;margin:0 auto;padding:24px 16px 80px}
+header{background:var(--acc);color:var(--on-acc);border-radius:16px;padding:22px 20px;margin-bottom:18px}
+header h1{margin:0 0 6px;font-size:24px}header p{margin:0;opacity:.9}
+.prog{display:flex;gap:4px;margin-top:14px}.prog i{flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.3)}.prog i.on{background:var(--on-acc)}
+section{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 12px;margin:14px 0}
+section.feito{opacity:.75}
+section h2{margin:0 0 8px;font-size:19px;display:flex;gap:10px;align-items:center}
+section h2 .n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--acc2);color:var(--acc);display:grid;place-items:center;font-size:15px}
+section.feito h2 .n{background:var(--ok);color:var(--on-acc)}
+ol,ul{padding-left:22px;margin:8px 0}li{margin:6px 0}
+a{color:var(--acc);font-weight:600}
+b.ui{background:var(--acc2);padding:1px 6px;border-radius:5px;font-weight:600;white-space:nowrap}
+.dica{background:var(--wbg);border-radius:10px;padding:10px 12px;margin:10px 0;font-size:15px}
+.ok{color:var(--ok);font-weight:600}
+label{display:block;font-weight:600;margin:12px 0 4px}
+label small{font-weight:400;color:var(--ink2)}
+input{width:100%;font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+input.bad{border-color:#B4442A}
+button{font:inherit;background:var(--acc);color:var(--on-acc);border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;margin:6px 6px 6px 0}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.ghost{background:transparent;color:var(--acc);border:1px solid var(--line)}
+.copy{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:8px 0}
+code.v{background:var(--code);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:14px;word-break:break-all}
+.feito-box{display:flex;gap:8px;align-items:center;border-top:1px solid var(--line);margin-top:12px;padding-top:10px;color:var(--ink2);font-size:15px}
+.feito-box input{width:auto;transform:scale(1.3)}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.falta{color:var(--warn);font-size:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Instalar o Family Finance</h1>
+  <p>Siga os passos na ordem. Tudo fica nas suas contas: ninguém mais tem acesso. Leva cerca de 40 minutos. Esta página guarda o que você preencher, pode fechar e voltar depois.</p>
+  <div class="prog" id="prog"></div>
+</header>
+
+<section data-s="1">
+<h2><span class="n">1</span>Crie duas contas (grátis)</h2>
+<ol>
+<li><a href="https://supabase.com/dashboard/sign-up" target="_blank" rel="noopener">Supabase</a>: é o banco de dados e o login do app. Pode entrar com a conta do Google ou do GitHub, ou com e-mail.</li>
+<li><a href="https://app.netlify.com/signup" target="_blank" rel="noopener">Netlify</a>: é onde o app fica no ar. Pode entrar com o Google.</li>
+</ol>
+<p>A conexão com o seu banco (Pluggy) fica para o final.</p>
+</section>
+
+<section data-s="2">
+<h2><span class="n">2</span>Seus dados</h2>
+<label>Nome da família <small>ex.: Família Silva</small></label><input id="familia" autocomplete="off">
+<label>Seu primeiro nome <small>aparece no app</small></label><input id="nome" autocomplete="given-name">
+<label>Seu e-mail <small>é com ele que você vai entrar no app</small></label><input id="email" type="email" autocomplete="email">
+<label>Seu nome completo como aparece no PIX <small>ex.: Pedro Henrique Silva. Serve para o app reconhecer transferências entre suas próprias contas</small></label><input id="pix" autocomplete="name">
+<p class="falta" id="falta2"></p>
+</section>
+
+<section data-s="3">
+<h2><span class="n">3</span>Crie o banco de dados</h2>
+<ol>
+<li>Abra <a href="https://supabase.com/dashboard/new" target="_blank" rel="noopener">Supabase → New project</a>.</li>
+<li>Em <b class="ui">Project name</b>, escreva <code class="v">family-finance</code>.</li>
+<li>Em <b class="ui">Database Password</b>, clique em <b class="ui">Generate a password</b> e <b>guarde essa senha</b> num lugar seguro.</li>
+<li>Em <b class="ui">Region</b>, escolha <b>South America (São Paulo)</b>.</li>
+<li>Clique em <b class="ui">Create new project</b> e espere uns 2 minutos, até sumir o aviso de "setting up".</li>
+<li>Na tela do projeto aparece o <b class="ui">Project URL</b> (algo como <code class="v">https://abcdefghij.supabase.co</code>). Se não aparecer, clique em <b class="ui">Connect</b> no topo. Copie e cole aqui:</li>
+</ol>
+<label>Endereço do projeto (Project URL)</label><input id="sburl" placeholder="https://xxxxxxxxxxxx.supabase.co" autocomplete="off">
+<p class="falta" id="falta3"></p>
+</section>
+
+<section data-s="4">
+<h2><span class="n">4</span>Monte o banco</h2>
+<p>Você vai colar dois textos no editor de SQL do Supabase e clicar em <b class="ui">Run</b>.</p>
+<ol>
+<li>Abra o <a class="sb" data-p="/sql/new" target="_blank" rel="noopener">editor de SQL do seu projeto</a>.</li>
+<li><button data-copy="schema">Copiar parte 1 (estrutura)</button> Clique na área de texto do editor, cole com <b>Ctrl+V</b> e clique em <b class="ui">Run</b> (ou Ctrl+Enter). Se aparecer um aviso perguntando se quer mesmo rodar, confirme. Deve aparecer <b>Success. No rows returned</b>.</li>
+<li>Apague o texto do editor (Ctrl+A e Delete). <button data-copy="seed" data-need="2">Copiar parte 2 (seus dados)</button> Cole e clique em <b class="ui">Run</b>.</li>
+<li>Para conferir: apague, <button class="ghost" data-copy="chk1">copiar conferência</button>, cole e rode. Deve mostrar <b>48</b> categorias e <b>1</b> pessoa.</li>
+</ol>
+<div class="dica">Se der erro na parte 1, não rode de novo por cima: me mande um print do erro.</div>
+</section>
+
+<section data-s="5">
+<h2><span class="n">5</span>Publique as funções</h2>
+<p>São 3 funções. Para cada uma:</p>
+<ol>
+<li>Abra <a class="sb" data-p="/functions" target="_blank" rel="noopener">Edge Functions</a> → <b class="ui">Deploy a new function</b> → <b class="ui">Via Editor</b>.</li>
+<li>No nome da função (no alto ou embaixo do editor), escreva exatamente o nome da lista abaixo.</li>
+<li>Apague todo o código de exemplo do editor, copie o código da função aqui e cole lá.</li>
+<li>Clique em <b class="ui">Deploy function</b>.</li>
+<li>Depois de publicada, abra a função → aba <b class="ui">Details</b> (ou <b class="ui">Settings</b>) → <b>desligue</b> a opção <b class="ui">Verify JWT</b> (às vezes chamada de "Enforce JWT verification") → <b class="ui">Save changes</b>.</li>
+</ol>
+<div class="copy"><code class="v">pluggy-sync</code><button data-copy="name:pluggy-sync" class="ghost">copiar nome</button><button data-copy="fn:pluggy-sync">copiar código</button></div>
+<div class="copy"><code class="v">member-invite</code><button data-copy="name:member-invite" class="ghost">copiar nome</button><button data-copy="fn:member-invite">copiar código</button></div>
+<div class="copy"><code class="v">push</code><button data-copy="name:push" class="ghost">copiar nome</button><button data-copy="fn:push">copiar código</button></div>
+<div class="dica">A opção Verify JWT tem que ficar <b>desligada</b> nas três: cada função confere sozinha quem está chamando.</div>
+</section>
+
+<section data-s="6">
+<h2><span class="n">6</span>Gere o app pronto</h2>
+<ol>
+<li>Abra <a class="sb" data-p="/settings/api-keys" target="_blank" rel="noopener">as chaves do projeto</a> e copie a <b class="ui">Publishable key</b> (começa com <code class="v">sb_publishable_</code>). Se a página mostrar abas, ela fica na aba de chaves novas, não em "Legacy".</li>
+<li>Cole aqui:</li>
+</ol>
+<label>Publishable key</label><input id="pubkey" placeholder="sb_publishable_..." autocomplete="off">
+<p class="falta" id="falta6"></p>
+<button id="baixar" disabled>Baixar o app pronto</button>
+<p>Vai baixar o arquivo <code class="v">family-finance-app.zip</code>, já ligado ao seu banco. Essa chave é pública (vai dentro do app); não é senha.</p>
+</section>
+
+<section data-s="7">
+<h2><span class="n">7</span>Coloque o app no ar (Netlify)</h2>
+<ol>
+<li>Na pasta Downloads, clique com o botão direito em <b>family-finance-app.zip</b> → <b class="ui">Extrair tudo</b> → <b class="ui">Extrair</b>. Vai aparecer a pasta <b>family-finance-app</b>.</li>
+<li>Já logado na Netlify, abra <a href="https://app.netlify.com/drop" target="_blank" rel="noopener">app.netlify.com/drop</a>.</li>
+<li>Arraste a <b>pasta</b> family-finance-app para a área indicada na página e espere terminar.</li>
+<li>Vai aparecer um endereço terminado em <code class="v">.netlify.app</code>. Se quiser um nome mais bonito: <b class="ui">Site configuration</b> → <b class="ui">Change site name</b>.</li>
+<li>Copie o endereço final e cole aqui:</li>
+</ol>
+<label>Endereço do app</label><input id="appurl" placeholder="https://nome.netlify.app" autocomplete="off">
+<p class="falta" id="falta7"></p>
+<div class="dica">Para atualizar o app no futuro: em <b class="ui">Deploys</b>, arraste a pasta nova para a área "Drag and drop". O endereço não muda.</div>
+</section>
+
+<section data-s="8">
+<h2><span class="n">8</span>Configure o login</h2>
+<ol>
+<li>Abra <a class="sb" data-p="/auth/url-configuration" target="_blank" rel="noopener">Authentication → URL Configuration</a>.
+  <ul>
+  <li>Em <b class="ui">Site URL</b>, cole <button class="ghost" data-copy="appurl" data-need="7">copiar endereço do app</button> e salve.</li>
+  <li>Em <b class="ui">Redirect URLs</b> → <b class="ui">Add URL</b>, cole <button class="ghost" data-copy="redir" data-need="7">copiar endereço com /**</button> e salve.</li>
+  </ul></li>
+<li>Abra <a class="sb" data-p="/functions/secrets" target="_blank" rel="noopener">Edge Functions → Secrets</a>. Em <b class="ui">Name</b> escreva <code class="v">APP_URL</code> <button class="ghost" data-copy="name:APP_URL">copiar</button>; em <b class="ui">Value</b> cole <button class="ghost" data-copy="appurl" data-need="7">copiar endereço do app</button>. Clique em <b class="ui">Save</b>.</li>
+<li>Abra <a class="sb" data-p="/auth/users" target="_blank" rel="noopener">Authentication → Users</a> → <b class="ui">Add user</b> → <b class="ui">Create new user</b>.
+  <ul>
+  <li>E-mail: <button class="ghost" data-copy="email" data-need="2">copiar seu e-mail</button> (tem que ser o mesmo do passo 2).</li>
+  <li>Senha: crie a senha que você vai usar para entrar no app.</li>
+  <li>Deixe marcado <b class="ui">Auto Confirm User</b> → <b class="ui">Create user</b>.</li>
+  </ul></li>
+<li>Abra <a class="sb" data-p="/auth/providers" target="_blank" rel="noopener">Authentication → Sign In / Providers</a> e <b>desligue</b> <b class="ui">Allow new users to sign up</b> → <b class="ui">Save</b>. Assim, só entra quem você cadastrar.</li>
+<li>Para conferir, no <a class="sb" data-p="/sql/new" target="_blank" rel="noopener">editor de SQL</a>: <button class="ghost" data-copy="chk2">copiar conferência</button>, cole e rode. A coluna <b>login_ligado</b> deve mostrar <b>true</b>.</li>
+</ol>
+</section>
+
+<section data-s="9">
+<h2><span class="n">9</span>Agendamentos</h2>
+<p>Faz o app buscar os dados do banco 4 vezes por dia e mandar o aviso diário no celular.</p>
+<ol>
+<li>No <a class="sb" data-p="/sql/new" target="_blank" rel="noopener">editor de SQL</a>: <button data-copy="cron" data-need="3">Copiar agendamentos</button>, cole e clique em <b class="ui">Run</b>.</li>
+</ol>
+</section>
+
+<section data-s="10">
+<h2><span class="n">10</span>Abra o app</h2>
+<ol>
+<li>Abra <a id="abrir" target="_blank" rel="noopener">o seu app</a> e entre com o e-mail e a senha do passo 8.</li>
+<li>No celular, abra o mesmo endereço e adicione à tela de início:
+  <ul>
+  <li>iPhone: Safari → <b class="ui">Compartilhar</b> → <b class="ui">Adicionar à Tela de Início</b>.</li>
+  <li>Android: Chrome → menu (⋮) → <b class="ui">Adicionar à tela inicial</b>.</li>
+  </ul></li>
+<li>Para receber avisos de lançamentos a classificar: no app, <b class="ui">Mais</b> → <b class="ui">Notificações</b> → <b class="ui">Ligar neste aparelho</b> → <b class="ui">Enviar teste</b>. No iPhone, isso só funciona abrindo pelo ícone da tela de início.</li>
+<li>Pessoas da família: cadastre em <b class="ui">Mais</b> → <b class="ui">Membros</b>.</li>
+</ol>
+<p>O app vai estar vazio até você conectar o banco, no próximo passo.</p>
+</section>
+
+<section data-s="11">
+<h2><span class="n">11</span>Conecte seu banco (Pluggy)</h2>
+<p>Faça você mesmo, por último. É a única parte que mexe com seus dados bancários.</p>
+<ol>
+<li>Crie a conta em <a href="https://dashboard.pluggy.ai" target="_blank" rel="noopener">dashboard.pluggy.ai</a> e crie uma aplicação. Anote o <b class="ui">Client ID</b> e o <b class="ui">Client Secret</b>. Confira o plano na Pluggy.</li>
+<li>Conecte suas contas pelo <b>Meu Pluggy</b>, conforme a Pluggy orientar, e anote o <b>id do item</b> conectado (um código longo, com hífens).</li>
+<li>Abra <a class="sb" data-p="/functions/secrets" target="_blank" rel="noopener">Edge Functions → Secrets</a> e crie dois segredos: <code class="v">PLUGGY_CLIENT_ID</code> <button class="ghost" data-copy="name:PLUGGY_CLIENT_ID">copiar</button> e <code class="v">PLUGGY_CLIENT_SECRET</code> <button class="ghost" data-copy="name:PLUGGY_CLIENT_SECRET">copiar</button>, cada um com o valor da Pluggy. Esses valores vão só lá: não cole em nenhum outro lugar.</li>
+<li>Cole aqui o id do item:</li>
+</ol>
+<label>Id do item da Pluggy <small>se tiver mais de um, separe por vírgula</small></label><input id="item" autocomplete="off">
+<ol start="5">
+<li>No <a class="sb" data-p="/sql/new" target="_blank" rel="noopener">editor de SQL</a>: <button data-copy="itemsql" data-need="11">Copiar comando</button>, cole e rode.</li>
+</ol>
+<p>A primeira sincronização acontece no próximo horário agendado (21:15, 23:15, 06:15 ou 18:15, horário de Cuiabá). Os lançamentos aparecem no app; classifique em <b class="ui">Revisão</b> e marque "criar regra" para o app aprender.</p>
+<div class="dica">A Pluggy atualiza os dados do banco cerca de uma vez por dia. O cálculo da fatura do cartão foi conferido com um cartão Santander; em outro banco, confira as primeiras faturas com o PDF.</div>
+</section>
+
+<p style="color:var(--ink2);font-size:14px">Family Finance <span id="ver"></span>. Travou em algum passo? Tire um print da tela e mande para quem te enviou este arquivo.</p>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="application/json" id="kit">__KIT__</script>
+<script>
+(function(){
+var KIT = JSON.parse(document.getElementById('kit').textContent);
+var $ = function(id){ return document.getElementById(id); };
+var store = {
+  get: function(k){ try { return localStorage.getItem('ffi_' + k) || ''; } catch(e) { return ''; } },
+  set: function(k, v){ try { localStorage.setItem('ffi_' + k, v); } catch(e) {} }
+};
+var campos = ['familia','nome','email','pix','sburl','pubkey','appurl','item'];
+campos.forEach(function(k){ var el = $(k); el.value = store.get(k); el.addEventListener('input', function(){ store.set(k, el.value.trim()); atualiza(); }); });
+$('ver').textContent = 'versão ' + KIT.version;
+
+function v(k){ return ($(k).value || '').trim(); }
+function normPix(s){ return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function sqlStr(s){ return s.replace(/'/g, "''"); }
+function ref(){ var m = /^https:\/\/([a-z0-9]{15,30})\.supabase\.co\/?$/.exec(v('sburl')); return m ? m[1] : ''; }
+function appUrl(){ var u = v('appurl').replace(/\/+$/, ''); return /^https:\/\/[a-z0-9.-]+\.[a-z]{2,}$/i.test(u) ? u : ''; }
+function okDados(){ return v('familia').length >= 3 && v('nome').length >= 2 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v('email')) && normPix(v('pix')).length >= 5; }
+function okKey(){ return /^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(v('pubkey')); }
+function okItem(){ return v('item').split(',').map(function(s){ return s.trim(); }).filter(Boolean).every(function(s){ return /^[0-9a-f-]{20,}$/i.test(s); }) && v('item').trim() !== ''; }
+var need = { '2': okDados, '3': function(){ return !!ref(); }, '7': function(){ return !!appUrl(); }, '11': okItem };
+
+function texto(what){
+  if (what === 'schema') return KIT.schema;
+  if (what === 'seed') return KIT.seed.split('{{FAMILIA}}').join(sqlStr(v('familia'))).split('{{TITULAR_NOME}}').join(sqlStr(v('nome'))).split('{{TITULAR_EMAIL}}').join(sqlStr(v('email').toLowerCase())).split('{{TITULAR_EXTRATO}}').join(sqlStr(normPix(v('pix'))));
+  if (what === 'chk1') return "select (select count(*) from categories) as categorias, (select count(*) from household_members) as pessoas;";
+  if (what === 'chk2') return "select display_name, email, auth_user_id is not null as login_ligado from household_members;";
+  if (what === 'cron') return KIT.cron.split('{{PROJECT_REF}}').join(ref());
+  if (what === 'appurl') return appUrl();
+  if (what === 'redir') return appUrl() + '/**';
+  if (what === 'email') return v('email').toLowerCase();
+  if (what === 'itemsql') { var ids = v('item').split(',').map(function(s){ return s.trim(); }).filter(Boolean).join(','); return "insert into app_settings(key, value) values ('pluggy_item_ids', '" + sqlStr(ids) + "') on conflict (key) do update set value = excluded.value;"; }
+  if (what.indexOf('name:') === 0) return what.slice(5);
+  if (what.indexOf('fn:') === 0) return KIT.functions[what.slice(3)];
+  return '';
+}
+function toast(t){ var el = $('toast'); el.textContent = t; el.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(function(){ el.classList.remove('on'); }, 2200); }
+function copiar(t){
+  if (navigator.clipboard && window.isSecureContext !== false) { return navigator.clipboard.writeText(t).then(function(){ return true; }, function(){ return fallback(t); }); }
+  return Promise.resolve(fallback(t));
+}
+function fallback(t){ var ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); var ok = false; try { ok = document.execCommand('copy'); } catch(e) {} document.body.removeChild(ta); return ok; }
+document.addEventListener('click', function(e){
+  var b = e.target.closest('button[data-copy]'); if (!b || b.disabled) return;
+  copiar(texto(b.getAttribute('data-copy'))).then(function(ok){ toast(ok ? 'Copiado. Agora cole com Ctrl+V.' : 'Não consegui copiar. Tente de novo.'); });
+});
+
+// ---- zip (sem compressão) ----
+var CRC = (function(){ var t = new Uint32Array(256); for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(b){ var c = 0xffffffff; for (var i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; }
+function zip(files){
+  var enc = new TextEncoder(), parts = [], central = [], off = 0, names = Object.keys(files);
+  names.forEach(function(name){
+    var data = files[name], nm = enc.encode(name), crc = crc32(data);
+    var h = new DataView(new ArrayBuffer(30)); h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, 0x0800, true); h.setUint16(12, 0x5b70, true); h.setUint32(14, crc, true); h.setUint32(18, data.length, true); h.setUint32(22, data.length, true); h.setUint16(26, nm.length, true);
+    parts.push(new Uint8Array(h.buffer), nm, data);
+    var c = new DataView(new ArrayBuffer(46)); c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, 0x0800, true); c.setUint16(14, 0x5b70, true); c.setUint32(16, crc, true); c.setUint32(20, data.length, true); c.setUint32(24, data.length, true); c.setUint16(28, nm.length, true); c.setUint32(42, off, true);
+    central.push(new Uint8Array(c.buffer), nm); off += 30 + nm.length + data.length;
+  });
+  var csize = central.reduce(function(s, x){ return s + x.length; }, 0), e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, names.length, true); e.setUint16(10, names.length, true); e.setUint32(12, csize, true); e.setUint32(16, off, true);
+  return new Blob(parts.concat(central, [new Uint8Array(e.buffer)]), { type: 'application/zip' });
+}
+$('baixar').addEventListener('click', function(){
+  var host = ref() + '.supabase.co', key = v('pubkey'), files = {};
+  Object.keys(KIT.site).forEach(function(name){
+    var bin = atob(KIT.site[name]), bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    if (/\.(html|json|js)$|^_headers$/.test(name)) bytes = new TextEncoder().encode(new TextDecoder().decode(bytes).split('__SBHOST__').join(host).split('__SBKEY__').join(key));
+    files['family-finance-app/' + name] = bytes;
+  });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(zip(files)); a.download = 'family-finance-app.zip';
+  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+  toast('Baixado. Agora siga o passo 7.');
+});
+
+// ---- marcar passos como feitos ----
+document.querySelectorAll('section[data-s]').forEach(function(s){
+  var k = 'feito' + s.getAttribute('data-s'), box = document.createElement('label');
+  box.className = 'feito-box'; box.innerHTML = '<input type="checkbox"> Já fiz este passo';
+  var cb = box.querySelector('input'); cb.checked = store.get(k) === '1';
+  cb.addEventListener('change', function(){ store.set(k, cb.checked ? '1' : ''); atualiza(); });
+  s.appendChild(box);
+});
+
+function atualiza(){
+  var r = ref();
+  document.querySelectorAll('a.sb').forEach(function(a){
+    if (r) { a.href = 'https://supabase.com/dashboard/project/' + r + a.getAttribute('data-p'); a.removeAttribute('title'); }
+    else { a.href = 'https://supabase.com/dashboard/project/_' + a.getAttribute('data-p'); a.title = 'Preencha o passo 3 para o link ir direto ao seu projeto'; }
+  });
+  document.querySelectorAll('button[data-need]').forEach(function(b){
+    var n = b.getAttribute('data-need'); b.disabled = !need[n](); b.title = b.disabled ? 'Falta preencher o passo ' + n : '';
+  });
+  $('baixar').disabled = !(r && okKey());
+  $('falta2').textContent = okDados() ? '' : 'Preencha os quatro campos para liberar a parte 2 do passo 4.';
+  $('falta3').textContent = v('sburl') && !r ? 'O endereço deve ser como https://abcdefghijklmnop.supabase.co (sem nada depois).' : '';
+  $('falta6').textContent = !r ? 'Preencha o endereço do projeto no passo 3.' : (v('pubkey') && !okKey() ? 'A chave começa com sb_publishable_ — copie de novo, inteira.' : '');
+  $('falta7').textContent = v('appurl') && !appUrl() ? 'O endereço deve começar com https://, como https://nome.netlify.app' : '';
+  $('sburl').classList.toggle('bad', !!v('sburl') && !r);
+  $('pubkey').classList.toggle('bad', !!v('pubkey') && !okKey());
+  $('appurl').classList.toggle('bad', !!v('appurl') && !appUrl());
+  var a = $('abrir'); if (appUrl()) { a.href = appUrl(); a.textContent = appUrl(); } else { a.removeAttribute('href'); a.textContent = 'o seu app (preencha o passo 7)'; }
+  var secs = document.querySelectorAll('section[data-s]'), prog = '', feitos = 0;
+  secs.forEach(function(s){ var f = store.get('feito' + s.getAttribute('data-s')) === '1'; s.classList.toggle('feito', f); if (f) feitos++; prog += '<i' + (f ? ' class="on"' : '') + '></i>'; });
+  $('prog').innerHTML = prog;
+}
+atualiza();
+})();
+</script>
+</body>
+</html>

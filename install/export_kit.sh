@@ -45,6 +45,7 @@ PY
 cp "$SRC"/railway/backup.ts "$SRC"/railway/restore-check.ts "$DST"/railway/ 2>/dev/null || true
 sed -i "s#familia-finance/#family-finance/#g" "$DST"/railway/backup.ts "$DST"/railway/restore-check.ts
 cp "$SRC"/install/LEIA-ME.md "$DST"/README.md
+( cd "$SRC" && bun install/guia/build_guia.ts "$DST" ) || { echo "ERRO: não gerei o INSTALAR.html" >&2; exit 4; }
 printf 'node_modules/\n*.xlsx\n*.pdf\n.env\n' > "$DST"/.gitignore
 
 # conferência: nada pessoal pode sobrar
