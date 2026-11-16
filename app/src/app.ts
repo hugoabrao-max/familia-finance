@@ -4,7 +4,7 @@
 // Instalação: SUPABASE_URL e SUPABASE_ANON_KEY vêm do ambiente (Railway → Variables); o padrão é a instalação da família Abrão.
 const SUPABASE_URL = (Bun.env.SUPABASE_URL || "https://hrsinekxrfiphlhpoewp.supabase.co").replace(/\/+$/, "");
 const ANON_KEY = Bun.env.SUPABASE_ANON_KEY || "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
-const APP_VERSION = "0.23.0";
+const APP_VERSION = "0.23.1";
 
 const MANIFEST = JSON.stringify({
   name: "Family Finance", short_name: "Family Finance", start_url: "/", scope: "/",
@@ -396,26 +396,31 @@ window.saveTx=async(id)=>{const cat=$('#cx').value,rule=$('#rule').checked;const
 
 // ---------- Cartão ----------
 // Teto da fatura: teto − parcelas já comprometidas (lançadas e a lançar) − gastos variáveis já lançados = livre para gastar.
+// Teto automático por mês = receita (mediana) − contas fixas pagas pela conta − reserva (meta de sobra); o usuário pode fixar um valor.
 function tetoHtml(T,B){const ab=T.find(r=>r.situacao==='aberta');const pagas=B.filter(b=>b.status==='paga').slice(0,6);
-  window._tetoMedia=pagas.length?pagas.reduce((s,b)=>s+Number(b.pdf_total??b.paid_amount??b.total_lancamentos),0)/pagas.length:null;window._tetoAtual=ab&&ab.teto!=null?Number(ab.teto):null;
+  window._tetoMedia=pagas.length?pagas.reduce((s,b)=>s+Number(b.pdf_total??b.paid_amount??b.total_lancamentos),0)/pagas.length:null;
+  window._tetoFixo=ab&&ab.teto_origem==='fixado'?Number(ab.teto):null;window._tetoAuto=ab&&ab.teto_auto!=null?Number(ab.teto_auto):null;
   if(!ab)return '';
-  if(ab.teto==null)return '<div class="panel" style="margin-bottom:10px"><b>Teto da fatura</b><p class="small muted" style="margin:6px 0 10px">Defina quanto a fatura do cartão pode chegar por mês. O app desconta as parcelas que já estão comprometidas e mostra quanto sobra para os gastos do dia a dia, qualquer que seja a categoria.</p><button onclick="editTeto()">Definir teto</button></div>';
+  if(ab.teto==null)return '<div class="panel" style="margin-bottom:10px"><b>Teto da fatura</b><p class="small muted" style="margin:6px 0 10px">Ainda não há receita suficiente para calcular o teto automático. Fixe um valor para o app mostrar quanto sobra para os gastos do dia a dia.</p><button onclick="editTeto()">Fixar teto</button></div>';
   const t=Number(ab.teto),p=Number(ab.comprometido),v=Number(ab.gasto_variavel),l=Number(ab.livre),base=Math.max(t,p+v)||1;
-  const pct=(x)=>Math.max(0,Math.min(100,x/base*100)).toFixed(1)+'%';const dias=ab.dias_ate_fechar;
+  const pct=(x)=>Math.max(0,Math.min(100,x/base*100)).toFixed(1)+'%';const dias=ab.dias_ate_fechar;const auto=ab.teto_origem!=='fixado';
   const fut=T.filter(r=>r.situacao==='futura');
-  return '<div class="card destaque" style="margin-bottom:10px;cursor:default"><div class="row"><div class="k">Teto da fatura · fecha '+(ab.fecha?fmtD(ab.fecha):'—')+'</div><a href="#" class="small" style="color:inherit" onclick="editTeto();return false">alterar</a></div>'+
+  const conta=auto?'Teto automático de '+esc(mesAbv(ab.mes))+': receita '+brl0(ab.receita_base)+' − contas fixas pagas pela conta '+brl0(ab.fixas_conta)+' − reserva '+brl0(ab.reserva)+' = '+brl0(t)+'.':'Teto fixado por você em '+brl0(t)+(ab.teto_auto!=null?' (o automático seria '+brl0(ab.teto_auto)+').':'.');
+  return '<div class="card destaque" style="margin-bottom:10px;cursor:default"><div class="row"><div class="k">Teto da fatura '+(auto?'(automático)':'(fixado)')+' · fecha '+(ab.fecha?fmtD(ab.fecha):'—')+'</div><a href="#" class="small" style="color:inherit" onclick="editTeto();return false">alterar</a></div>'+
    '<div class="v num">'+brl0(Math.abs(l))+'</div><div class="s"><b>'+(l>=0?'livre para gastar':'passou do teto')+'</b>'+(l>0&&dias>0?' · cerca de '+brl0(l/dias)+' por dia nos '+dias+(dias===1?' dia':' dias')+' até o fechamento':'')+'</div></div>'+
    '<div class="panel" style="margin:-4px 0 10px"><div class="tbar" role="img" aria-label="'+esc('Teto '+brl0(t)+': parcelas '+brl0(p)+', gastos '+brl0(v)+', '+(l>=0?'livre '+brl0(l):'passou '+brl0(-l)))+'"><i class="p" style="width:'+pct(p)+'"></i><i class="'+(p+v>t?'x':'v')+'" style="width:'+pct(v)+'"></i></div>'+
    '<div class="tleg"><span><b style="background:var(--ink2)"></b>parcelas comprometidas '+brl0(p)+'</span><span><b style="background:var(--acc)"></b>gastos do mês '+brl0(v)+'</span><span><b style="background:var(--line)"></b>teto '+brl0(t)+'</span></div>'+
-   (fut.length?'<div class="small" style="margin-top:12px"><b>Próximas faturas</b>'+fut.slice(0,6).map(r=>'<div class="row" style="padding:5px 0;border-top:1px solid var(--line)"><span>'+esc(mesAbv(r.mes))+' <span class="muted">· parcelas '+brl0(r.comprometido)+'</span></span><span class="num '+(Number(r.livre)<0?'passou':'restam')+'">'+(Number(r.livre)<0?'passou ':'livre ')+brl0(Math.abs(Number(r.livre)))+'</span></div>').join('')+'</div>':'')+
-   '<details class="small" style="margin-top:8px"><summary class="muted" style="cursor:pointer">Como é calculado</summary><p class="muted" style="margin:6px 0 0">Livre = teto − parcelas de compras anteriores que caem nesta fatura (já lançadas e as que ainda vão cair) − tudo o que já foi lançado à vista ou como 1ª parcela, de qualquer categoria. Uma compra parcelada nova usa só a 1ª parcela agora; as outras aparecem nas próximas faturas. Cobranças recorrentes (seguro, assinaturas) contam quando entram na fatura.</p></details></div>'}
-window.editTeto=()=>{const a=window._tetoAtual,md=window._tetoMedia;
-  openSheet('<b>Teto da fatura do cartão</b><p class="small muted">Valor máximo que você quer que a fatura chegue por mês, somando todos os cartões e titulares.'+(md?' Média das últimas faturas pagas: '+brl0(md)+'.':'')+'</p><label class="small" for="tv">Teto mensal (R$)</label><input id="tv" inputmode="decimal" value="'+(a!=null?Math.round(a):'')+'" placeholder="ex.: 30.000">'+
-   '<div class="row" style="margin-top:12px">'+(a!=null?'<button class="ghost" onclick="saveTeto(true)">Remover teto</button>':'<button class="ghost" onclick="closeSheet()">Cancelar</button>')+'<button onclick="saveTeto()">Salvar</button></div>')};
-window.saveTeto=async(remover)=>{const v=remover?null:num($('#tv').value);if(!remover&&(v==null||v<=0)){toast('Informe um valor maior que zero');return}
-  const {error}=await sb.from('plan_settings').upsert({key:'teto_fatura',value:v,text_value:'Teto mensal da fatura do cartão',updated_at:new Date().toISOString(),updated_by:S.member?.id});
-  if(error){toast('Não salvou: '+error.message);return}closeSheet();toast(remover?'Teto removido':'Teto de '+brl0(v)+' salvo');route()};
-
+   '<p class="small muted" style="margin:8px 0 0">'+conta+'</p>'+
+   (fut.length?'<div class="small" style="margin-top:12px"><b>Próximas faturas</b>'+fut.slice(0,6).map(r=>'<div class="row" style="padding:5px 0;border-top:1px solid var(--line)"><span>'+esc(mesAbv(r.mes))+' <span class="muted">· teto '+brl0(r.teto)+' · parcelas '+brl0(r.comprometido)+'</span></span><span class="num '+(Number(r.livre)<0?'passou':'restam')+'" style="white-space:nowrap">'+(Number(r.livre)<0?'passou ':'livre ')+brl0(Math.abs(Number(r.livre)))+'</span></div>').join('')+'</div>':'')+
+   '<details class="small" style="margin-top:8px"><summary class="muted" style="cursor:pointer">Como é calculado</summary><p class="muted" style="margin:6px 0 0">Teto automático = receita do mês (mediana dos últimos meses) − contas fixas pagas pela conta corrente naquele mês − reserva (meta de sobra). Contas fixas pagas no cartão não são descontadas do teto: elas entram como gasto quando caem na fatura. Livre = teto − parcelas de compras anteriores que caem nesta fatura (já lançadas e as que ainda vão cair) − tudo o que já foi lançado à vista ou como 1ª parcela, de qualquer categoria. Gastos por PIX ou débito que não são contas fixas não entram na conta.</p></details></div>'}
+window.editTeto=()=>{const f=window._tetoFixo,au=window._tetoAuto,md=window._tetoMedia;
+  openSheet('<b>Teto da fatura do cartão</b><p class="small muted">'+(au!=null?'Automático este mês: '+brl0(au)+' (receita − contas fixas pagas pela conta − reserva).':'Ainda não dá para calcular o automático.')+(md?' Média das últimas faturas pagas: '+brl0(md)+'.':'')+'</p>'+
+   (au!=null?'<button class="'+(f==null?'':'ghost')+'" style="width:100%;margin-bottom:12px" onclick="saveTeto(true)">'+(f==null?'Usando o automático':'Voltar ao automático')+'</button>':'')+
+   '<label class="small" for="tv">Fixar um valor mensal (R$)</label><input id="tv" inputmode="decimal" value="'+(f!=null?Math.round(f):'')+'" placeholder="ex.: 30.000">'+
+   '<div class="row" style="margin-top:12px"><button class="ghost" onclick="closeSheet()">Cancelar</button><button onclick="saveTeto()">Fixar valor</button></div>')};
+window.saveTeto=async(auto)=>{const v=auto?null:num($('#tv').value);if(!auto&&(v==null||v<=0)){toast('Informe um valor maior que zero');return}
+  const {error}=await sb.from('plan_settings').upsert({key:'teto_fatura',value:v,text_value:'Teto mensal da fatura do cartão (vazio = automático)',updated_at:new Date().toISOString(),updated_by:S.member?.id});
+  if(error){toast('Não salvou: '+error.message);return}closeSheet();toast(auto?'Teto automático':'Teto fixado em '+brl0(v));route()};
 async function renderCartao(q){const _rt=RT;
   const card=S.accounts.find(a=>a.subtype==='CREDIT_CARD');
   const [{data:bills},{data:hold},{data:tt}]=await Promise.all([sb.from('v_card_bills').select('*').order('closing_date',{ascending:false}).limit(14),

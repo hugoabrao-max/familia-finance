@@ -1,4 +1,4 @@
-// Teste do teto da fatura do cartão (v0.23) com Supabase simulado e números reais de nov/26.
+// Teste do teto da fatura do cartão (v0.23.1: automático com opção de fixar) com Supabase simulado e números reais de nov/26.
 // Uso: node teto.test.js <url_app> <dir_saida>   (requer sb.mjs; ver README.md)
 const { chromium } = require('playwright');
 const fs = require('fs');
@@ -7,7 +7,10 @@ const OUT = process.argv[3] || '.';
 const SB = fs.readFileSync(__dirname + '/sb.mjs');
 const reqs = [], writes = [];
 let TETO = null;
-const linha = (mes, sit, fecha, dias, p, v) => ({ mes, situacao: sit, fecha, vence: null, teto: TETO, comprometido: p, parcelas_lancadas: sit === 'aberta' ? p : 0, parcelas_a_lancar: sit === 'aberta' ? 0 : p, gasto_variavel: v, livre: TETO == null ? null : +(TETO - p - v).toFixed(2), dias_ate_fechar: dias });
+const AUTO = { '2026-11-01': [84680.5, 48309.82], '2026-12-01': [84680.5, 44266.77], '2027-01-01': [84680.5, 43716.49] };
+const linha = (mes, sit, fecha, dias, p, v) => { const [rec, fx] = AUTO[mes]; const auto = +(rec - fx - 10000).toFixed(2); const t = TETO ?? auto;
+  return { mes, situacao: sit, fecha, vence: null, teto: t, teto_origem: TETO == null ? 'automatico' : 'fixado', teto_auto: auto, receita_base: rec, fixas_conta: fx, reserva: 10000,
+    comprometido: p, parcelas_lancadas: sit === 'aberta' ? p : 0, parcelas_a_lancar: sit === 'aberta' ? 0 : p, gasto_variavel: v, livre: +(t - p - v).toFixed(2), dias_ate_fechar: dias }; };
 const tetoRows = () => [linha('2026-11-01', 'aberta', '2026-11-27', 11, 14274.95, 19157.56), linha('2026-12-01', 'futura', '2026-12-29', 43, 9082.45, 0), linha('2027-01-01', 'futura', null, null, 2502.44, 0)];
 const BILLS = [{ closing_date: '2026-11-27', due_date: '2026-12-06', competence_month: '2026-11-01', total_lancamentos: 33432.51, n_lancamentos: 134, status: 'aberta', source: 'pluggy_parcelas' },
   ...[['2026-10', 44773], ['2026-09', 57851], ['2026-08', 45498], ['2026-07', 34248], ['2026-06', 31614], ['2026-05', 33125]].map(([m, v]) => ({ closing_date: m + '-28', due_date: m + '-28', competence_month: m + '-01', total_lancamentos: v, paid_amount: v, n_lancamentos: 200, status: 'paga', source: 'pluggy_parcelas' }))];
@@ -51,31 +54,30 @@ function data(t, u) {
 
   let { ctx, p, errs } = await page({ width: 390, height: 844 });
   await p.goto(APP + '#cartao'); await idle(p);
-  ok('sem teto: convite para definir', (await p.locator('button', { hasText: 'Definir teto' }).count()) === 1);
-  await p.locator('button', { hasText: 'Definir teto' }).click(); await p.waitForTimeout(150);
-  const sh = nb(await p.locator('#sheetBody').textContent());
-  ok('janela mostra a média das últimas faturas pagas (R$ 41.185)', sh.includes('Média das últimas faturas pagas: R$ 41.185'), sh);
-  writes.length = 0; await p.fill('#tv', '40.000'); await p.locator('#sheetBody button', { hasText: 'Salvar' }).click(); TETO = 40000; await idle(p);
-  ok('salva teto_fatura = 40000 em plan_settings', writes.length === 1 && writes[0].t === 'plan_settings' && writes[0].body.key === 'teto_fatura' && writes[0].body.value === 40000, JSON.stringify(writes));
-  await p.goto(APP + '#cartao'); await idle(p);
-  await p.screenshot({ path: OUT + '/teto-cartao.png', fullPage: true });
-  const card = nb(await p.locator('.card.destaque').first().textContent());
-  ok('livre = 40.000 − 14.275 − 19.158 = R$ 6.567', card.includes('R$ 6.567') && card.includes('livre para gastar'), card);
-  ok('ritmo: cerca de R$ 597 por dia nos 11 dias', card.includes('cerca de R$ 597 por dia nos 11 dias'), card);
-  const leg = nb(await p.locator('.tleg').textContent());
-  ok('legenda: parcelas, gastos e teto', leg.includes('parcelas comprometidas R$ 14.275') && leg.includes('gastos do mês R$ 19.158') && leg.includes('teto R$ 40.000'), leg);
-  const prox = nb(await p.locator('.panel', { hasText: 'Próximas faturas' }).textContent());
-  ok('próximas: dez/26 livre R$ 30.918 (parcelas R$ 9.082)', prox.includes('dez/26') && prox.includes('parcelas R$ 9.082') && prox.includes('livre R$ 30.918'), prox);
-  ok('barra com rótulo para leitor de tela', (await p.locator('.tbar[aria-label]').count()) === 1);
+  await p.screenshot({ path: OUT + '/teto-auto.png', fullPage: true });
+  let card = nb(await p.locator('.card.destaque').first().textContent());
+  ok('automático: passou do teto em R$ 7.062 (26.371 − 14.275 − 19.158)', card.includes('(automático)') && card.includes('passou do teto') && card.includes('R$ 7.062'), card);
+  const painel = nb(await p.locator('.panel', { hasText: 'Próximas faturas' }).textContent());
+  ok('mostra a conta: receita − contas fixas − reserva', painel.includes('Teto automático de nov/26: receita R$ 84.681 − contas fixas pagas pela conta R$ 48.310 − reserva R$ 10.000 = R$ 26.371'), painel);
+  ok('dez/26: teto R$ 30.414, parcelas R$ 9.082, livre R$ 21.331', painel.includes('dez/26') && painel.includes('teto R$ 30.414') && painel.includes('livre R$ 21.331'), painel);
   await p.goto(APP + '#inicio'); await idle(p);
-  ok('Início: fatura aberta mostra "livre R$ 6.567 do teto"', nb(await p.locator('.cards3 a.card[href="#cartao"]').textContent()).includes('livre R$ 6.567 do teto'));
-  TETO = 30000; await p.reload(); await idle(p);
-  ok('passou do teto: Início avisa em "Precisa de você"', nb(await p.locator('.need').textContent()).includes('Fatura do cartão passou do teto em R$ 3.433') && nb(await p.locator('.cards3 a.card[href="#cartao"]').textContent()).includes('passou R$ 3.433 do teto'));
+  ok('Início avisa que passou do teto (automático)', nb(await p.locator('.need').textContent()).includes('Fatura do cartão passou do teto em R$ 7.062'));
   await p.goto(APP + '#cartao'); await idle(p);
-  ok('Cartão: "passou do teto" em vez de livre', nb(await p.locator('.card.destaque').first().textContent()).includes('passou do teto'));
+  await p.locator('.card.destaque a', { hasText: 'alterar' }).click(); await p.waitForTimeout(150);
+  const sh = nb(await p.locator('#sheetBody').textContent());
+  ok('janela: automático deste mês e média das faturas', sh.includes('Automático este mês: R$ 26.371') && sh.includes('Média das últimas faturas pagas: R$ 41.185') && sh.includes('Usando o automático'), sh);
+  writes.length = 0; await p.fill('#tv', '40.000'); await p.locator('#sheetBody button', { hasText: 'Fixar valor' }).click(); TETO = 40000; await idle(p);
+  ok('fixar grava teto_fatura = 40000', writes.length === 1 && writes[0].body.key === 'teto_fatura' && writes[0].body.value === 40000, JSON.stringify(writes));
+  await p.reload(); await idle(p);
+  card = nb(await p.locator('.card.destaque').first().textContent());
+  ok('fixado: livre R$ 6.567 e R$ 597/dia', card.includes('(fixado)') && card.includes('R$ 6.567') && card.includes('cerca de R$ 597 por dia nos 11 dias'), card);
+  ok('fixado: informa quanto seria o automático', nb(await p.locator('.panel', { hasText: 'Próximas faturas' }).textContent()).includes('Teto fixado por você em R$ 40.000 (o automático seria R$ 26.371)'));
+  await p.goto(APP + '#inicio'); await idle(p);
+  ok('Início com teto fixado: "livre R$ 6.567 do teto"', nb(await p.locator('.cards3 a.card[href="#cartao"]').textContent()).includes('livre R$ 6.567 do teto'));
+  await p.goto(APP + '#cartao'); await idle(p);
   writes.length = 0; await p.locator('.card.destaque a', { hasText: 'alterar' }).click(); await p.waitForTimeout(150);
-  await p.locator('#sheetBody button', { hasText: 'Remover teto' }).click(); await idle(p);
-  ok('remover teto grava valor vazio', writes.length === 1 && writes[0].body.value === null);
+  await p.locator('#sheetBody button', { hasText: 'Voltar ao automático' }).click(); await idle(p);
+  ok('voltar ao automático grava valor vazio', writes.length === 1 && writes[0].body.value === null);
   ok('sem erros de JS', errs.length === 0, errs.join(' | '));
   await ctx.close(); await b.close();
   for (const r of results) console.log(r.join('  '));
