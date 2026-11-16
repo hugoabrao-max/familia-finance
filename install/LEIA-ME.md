@@ -25,20 +25,20 @@ Nenhuma dessas contas precisa dos seus dados bancários para ser criada. A conex
 4. Em Authentication → Providers, deixe só E-mail ligado. Em Authentication → Sign In / Providers, desligue "Allow new users to sign up" depois de criar o seu login.
 
 ### 2. Funções (Supabase → Edge Functions)
-No painel: Edge Functions → Deploy a new function → Via Editor; dê o nome exato da pasta e cole o conteúdo do `index.ts`. Publique as três funções da pasta `supabase/functions/`:
+No painel: Edge Functions → Deploy a new function → Via Editor; dê o nome exato da pasta e cole o conteúdo do `index.ts`. Publique as quatro funções da pasta `supabase/functions/`:
 - `pluggy-sync` (sincronização);
 - `member-invite` (link de acesso para membros);
 - `backup-export` (opcional);
 - `push` (avisos no celular quando há lançamentos para classificar).
 
-Nas três, deixe **Verify JWT desligado**: cada função confere sozinha quem está chamando (token próprio ou login do app), e a checagem automática do Supabase não aceita as chaves no formato novo.
+Nas quatro, deixe **Verify JWT desligado**: cada função confere sozinha quem está chamando (token próprio ou login do app), e a checagem automática do Supabase não aceita as chaves no formato novo.
 
 ### 3. App (Railway)
 1. No GitHub: New repository → nome `family-finance`, **Private** → Create. Na página do repositório, clique em "uploading an existing file" e arraste todo o conteúdo desta pasta (as pastas `app`, `install`, `supabase`, `railway` e os arquivos soltos) → Commit changes.
 2. No Railway: New Project → Deploy from GitHub → escolha o repositório. Em Settings: Root Directory `/app`, Healthcheck `/health`.
 3. Em Variables, crie `SUPABASE_URL` (ex.: `https://abcdefgh.supabase.co`) e `SUPABASE_ANON_KEY` (a "publishable key" do Supabase, em Project Settings → API Keys).
 4. Em Settings → Networking, gere um domínio. Abra o endereço: deve aparecer a tela de login.
-5. No Supabase, Edge Functions → Secrets: crie `APP_URL` com o endereço gerado no passo anterior (o que você abre no navegador, começando com `https://`). É para onde os links de acesso de membros apontam.
+5. No Supabase, Edge Functions → Secrets: crie `APP_URL` com o endereço gerado no passo anterior (o que você abre no navegador, começando com `https://`). É para onde os links de acesso de membros e os avisos no celular apontam.
 
 ### 4. Seu login
 No Supabase, Authentication → Users → Add user, com o mesmo e-mail que você pôs no `02_seed.sql`. Entre no app com ele. Para outra pessoa da família, cadastre o e-mail dela na tabela `household_members` e gere o link de acesso em Mais → Membros.
@@ -53,6 +53,8 @@ No Supabase, Authentication → Users → Add user, com o mesmo e-mail que você
 - Revisão: classifique os lançamentos pendentes; marque "criar regra" para o app aprender.
 - Plano → Contas fixas: cadastre aluguel, condomínio, escola, financiamentos.
 - Plano → Orçamento: defina quanto quer gastar por grupo.
+- Avisos no celular: em Mais → Notificações → "Ligar neste aparelho" (no iPhone, primeiro Safari → Compartilhar → Adicionar à Tela de Início e abra pelo ícone; iOS 16.4 ou mais novo). Todo dia às 19:07 de Cuiabá chega um aviso se houver lançamentos para classificar.
+- Cartão: o teto da fatura é calculado sozinho (receita − contas fixas pagas pela conta − reserva); dá para fixar um valor na tela do cartão.
 - Os nomes das categorias podem ser trocados no Supabase (tabela `categories`, coluna `name`).
 
 ## Limites conhecidos
