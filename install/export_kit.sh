@@ -23,9 +23,9 @@ guard = 'if (!SUPABASE_URL || !ANON_KEY) { console.error("Faltam as variáveis S
 assert s.count(anchor) == 1; open(p, 'w', encoding='utf-8').write(s.replace(anchor, guard + anchor))
 PY
 cp "$SRC"/install/01_schema.sql "$SRC"/install/02_seed.sql "$SRC"/install/03_cron.sql "$SRC"/install/LEIA-ME.md "$DST"/install/
-for f in pluggy-sync member-invite backup-export; do mkdir -p "$DST"/supabase/functions/$f; cp "$SRC"/supabase/functions/$f/index.ts "$DST"/supabase/functions/$f/; done
+for f in pluggy-sync member-invite backup-export push; do mkdir -p "$DST"/supabase/functions/$f; cp "$SRC"/supabase/functions/$f/index.ts "$DST"/supabase/functions/$f/; done
 # member-invite: endereço do app vem do segredo APP_URL da nova instalação
-sed -i 's#^const APP_URL = "https://[^"]*";#const APP_URL = (Deno.env.get("APP_URL") ?? "").replace(/\\/+$/, "");\nif (!APP_URL) console.error("Defina o segredo APP_URL com o endereço do app");#' "$DST"/supabase/functions/member-invite/index.ts
+sed -i 's#^const APP_URL = "https://[^"]*";#const APP_URL = (Deno.env.get("APP_URL") ?? "").replace(/\\/+$/, "");\nif (!APP_URL) console.error("Defina o segredo APP_URL com o endereço do app");#' "$DST"/supabase/functions/member-invite/index.ts "$DST"/supabase/functions/push/index.ts
 grep -q 'Deno.env.get("APP_URL")' "$DST"/supabase/functions/member-invite/index.ts || { echo "ERRO: APP_URL não foi trocado" >&2; exit 3; }
 cp "$SRC"/install/CLAUDE-kit.md "$DST"/CLAUDE.md
 # chave de serviço: aceita o formato novo (SUPABASE_SECRET_KEYS) quando a antiga (SERVICE_ROLE) não existir
@@ -33,7 +33,7 @@ python3 - "$DST"/supabase/functions <<'PY'
 import sys, os
 d = sys.argv[1]
 helper = 'const SVC_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || (() => { try { const k = JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS") || "{}"); return k.default || Object.values(k)[0] || ""; } catch { return ""; } })();\n'
-for f in ("pluggy-sync", "member-invite", "backup-export"):
+for f in ("pluggy-sync", "member-invite", "backup-export", "push"):
     p = os.path.join(d, f, "index.ts"); s = open(p, encoding="utf-8").read()
     n = s.count('Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")')
     assert n >= 1, (f, n)

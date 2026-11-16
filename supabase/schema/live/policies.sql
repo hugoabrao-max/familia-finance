@@ -34,6 +34,7 @@ alter table public.mcc_category_map enable row level security;
 alter table public.monthly_closings enable row level security;
 alter table public.plan_settings enable row level security;
 alter table public.project_docs enable row level security;
+alter table public.push_subscriptions enable row level security;
 alter table public.raw_transactions enable row level security;
 alter table public.sim_scenarios enable row level security;
 alter table public.sync_errors enable row level security;
@@ -230,3 +231,7 @@ create policy tx_select on public.transactions as PERMISSIVE for SELECT to publi
    FROM (accounts a
      JOIN connections c ON ((c.id = a.connection_id)))
   WHERE ((a.id = transactions.account_id) AND (c.household_id = ( SELECT my_household() AS my_household))))));
+create policy push_read_own on public.push_subscriptions as PERMISSIVE for SELECT to authenticated
+  using ((member_id = ( SELECT (current_member()).id AS id)));
+create policy push_delete_own on public.push_subscriptions as PERMISSIVE for DELETE to authenticated
+  using ((member_id = ( SELECT (current_member()).id AS id)));

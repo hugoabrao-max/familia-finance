@@ -28,7 +28,8 @@ Nenhuma dessas contas precisa dos seus dados bancários para ser criada. A conex
 No painel: Edge Functions → Deploy a new function → Via Editor; dê o nome exato da pasta e cole o conteúdo do `index.ts`. Publique as três funções da pasta `supabase/functions/`:
 - `pluggy-sync` (sincronização);
 - `member-invite` (link de acesso para membros);
-- `backup-export` (opcional).
+- `backup-export` (opcional);
+- `push` (avisos no celular quando há lançamentos para classificar).
 
 Nas três, deixe **Verify JWT desligado**: cada função confere sozinha quem está chamando (token próprio ou login do app), e a checagem automática do Supabase não aceita as chaves no formato novo.
 

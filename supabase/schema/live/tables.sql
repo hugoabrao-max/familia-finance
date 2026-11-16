@@ -516,6 +516,24 @@ create table public.project_docs (
   constraint project_docs_pkey PRIMARY KEY (name)
 );
 
+create table public.push_subscriptions (
+  id uuid not null default gen_random_uuid(),
+  member_id uuid not null,
+  endpoint text not null,
+  p256dh text not null,
+  auth text not null,
+  kinds text[] not null default ARRAY['revisao'::text],
+  user_agent text,
+  created_at timestamp with time zone not null default now(),
+  last_sent_at timestamp with time zone,
+  last_status integer,
+  active boolean not null default true,
+  constraint push_subscriptions_pkey PRIMARY KEY (id),
+  constraint push_subscriptions_endpoint_key UNIQUE (endpoint),
+  constraint push_subscriptions_member_id_fkey FOREIGN KEY (member_id) REFERENCES household_members(id) ON DELETE CASCADE
+);
+CREATE INDEX push_subscriptions_member_idx ON public.push_subscriptions USING btree (member_id);
+
 create table public.raw_transactions (
   id uuid not null default gen_random_uuid(),
   account_id uuid not null,

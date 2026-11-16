@@ -22,7 +22,7 @@ const assets = {
   schema: text(join(kit, "install", "01_schema.sql")),
   seed: text(join(kit, "install", "02_seed.sql")),
   cron: text(join(kit, "install", "03_cron.sql")),
-  functions: Object.fromEntries(["pluggy-sync", "member-invite", "backup-export"].map(f => [f, text(join(kit, "supabase", "functions", f, "index.ts"))])),
+  functions: Object.fromEntries(["pluggy-sync", "member-invite", "backup-export", "push"].map(f => [f, text(join(kit, "supabase", "functions", f, "index.ts"))])),
   site: Object.fromEntries(readdirSync(site).map(f => [f, readFileSync(join(site, f)).toString("base64")])),
   version: JSON.parse(text(join(site, "health.json"))).version as string,
 };

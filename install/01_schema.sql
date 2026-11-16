@@ -491,6 +491,22 @@ create table public.project_docs (
   constraint project_docs_pkey PRIMARY KEY (name)
 );
 
+create table public.push_subscriptions (
+  id uuid not null default gen_random_uuid(),
+  member_id uuid not null,
+  endpoint text not null,
+  p256dh text not null,
+  auth text not null,
+  kinds text[] not null default ARRAY['revisao'::text],
+  user_agent text,
+  created_at timestamp with time zone not null default now(),
+  last_sent_at timestamp with time zone,
+  last_status integer,
+  active boolean not null default true,
+  constraint push_subscriptions_pkey PRIMARY KEY (id),
+  constraint push_subscriptions_endpoint_key UNIQUE (endpoint)
+);
+
 create table public.raw_transactions (
   id uuid not null default gen_random_uuid(),
   account_id uuid not null,
@@ -647,6 +663,7 @@ alter table public.household_members add constraint household_members_household_
 alter table public.import_jobs add constraint import_jobs_account_id_fkey FOREIGN KEY (account_id) REFERENCES accounts(id);
 alter table public.investment_positions add constraint investment_positions_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES connections(id) ON DELETE CASCADE;
 alter table public.mcc_category_map add constraint mcc_category_map_category_id_fkey FOREIGN KEY (category_id) REFERENCES categories(id);
+alter table public.push_subscriptions add constraint push_subscriptions_member_id_fkey FOREIGN KEY (member_id) REFERENCES household_members(id) ON DELETE CASCADE;
 alter table public.raw_transactions add constraint raw_transactions_account_id_fkey FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE;
 alter table public.sync_errors add constraint sync_errors_account_id_fkey FOREIGN KEY (account_id) REFERENCES accounts(id);
 alter table public.sync_errors add constraint sync_errors_connection_id_fkey FOREIGN KEY (connection_id) REFERENCES connections(id);
@@ -663,6 +680,7 @@ alter table public.transactions add constraint transactions_rule_id_fkey FOREIGN
 -- índices
 CREATE INDEX account_balance_history_account_id_observed_at_idx ON public.account_balance_history USING btree (account_id, observed_at DESC);
 CREATE INDEX investment_positions_connection_id_observed_at_idx ON public.investment_positions USING btree (connection_id, observed_at DESC);
+CREATE INDEX push_subscriptions_member_idx ON public.push_subscriptions USING btree (member_id);
 CREATE INDEX raw_transactions_account_id_last_seen_at_idx ON public.raw_transactions USING btree (account_id, last_seen_at);
 CREATE INDEX transaction_links_tx_a_idx ON public.transaction_links USING btree (tx_a);
 CREATE INDEX transaction_links_tx_b_idx ON public.transaction_links USING btree (tx_b);
@@ -2261,6 +2279,7 @@ alter table public.mcc_category_map enable row level security;
 alter table public.monthly_closings enable row level security;
 alter table public.plan_settings enable row level security;
 alter table public.project_docs enable row level security;
+alter table public.push_subscriptions enable row level security;
 alter table public.raw_transactions enable row level security;
 alter table public.sim_scenarios enable row level security;
 alter table public.sync_errors enable row level security;
@@ -2457,6 +2476,10 @@ create policy tx_select on public.transactions as PERMISSIVE for SELECT to publi
    FROM (accounts a
      JOIN connections c ON ((c.id = a.connection_id)))
   WHERE ((a.id = transactions.account_id) AND (c.household_id = ( SELECT my_household() AS my_household))))));
+create policy push_read_own on public.push_subscriptions as PERMISSIVE for SELECT to authenticated
+  using ((member_id = ( SELECT (current_member()).id AS id)));
+create policy push_delete_own on public.push_subscriptions as PERMISSIVE for DELETE to authenticated
+  using ((member_id = ( SELECT (current_member()).id AS id)));
 
 
 -- triggers.sql

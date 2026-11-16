@@ -4,7 +4,7 @@
 // Instalação: SUPABASE_URL e SUPABASE_ANON_KEY vêm do ambiente (Railway → Variables); o padrão é a instalação da família Abrão.
 const SUPABASE_URL = (Bun.env.SUPABASE_URL || "https://hrsinekxrfiphlhpoewp.supabase.co").replace(/\/+$/, "");
 const ANON_KEY = Bun.env.SUPABASE_ANON_KEY || "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
-const APP_VERSION = "0.23.1";
+const APP_VERSION = "0.24.0";
 
 const MANIFEST = JSON.stringify({
   name: "Family Finance", short_name: "Family Finance", start_url: "/", scope: "/",
@@ -18,7 +18,9 @@ const ICON192 = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAIAAADdvv
 
 const SW = `self.addEventListener('install',e=>self.skipWaiting());self.addEventListener('activate',e=>self.clients.claim());
 self.addEventListener('fetch',e=>{const u=new URL(e.request.url);if(e.request.mode==='navigate'){e.respondWith(fetch(e.request).catch(()=>caches.match('app-shell')));}});
-self.addEventListener('message',async e=>{if(e.data==='cache-shell'){const c=await caches.open('ffa-v1');const r=await fetch('./');c.put('app-shell',r);}});`;
+self.addEventListener('message',async e=>{if(e.data==='cache-shell'){const c=await caches.open('ffa-v1');const r=await fetch('./');c.put('app-shell',r);}});
+self.addEventListener('push',e=>{let d={};try{d=e.data?e.data.json():{}}catch(x){}e.waitUntil(self.registration.showNotification(d.title||'Family Finance',{body:d.body||'Há lançamentos esperando você na Revisão',icon:'/icon-192.png?v=2',badge:'/icon-192.png?v=2',tag:d.tag||'revisao',data:{url:d.url||'/#revisao'}}))});
+self.addEventListener('notificationclick',e=>{e.notification.close();const url=(e.notification.data&&e.notification.data.url)||'/#revisao';e.waitUntil(clients.matchAll({type:'window',includeUncontrolled:true}).then(cs=>{for(const c of cs){if('focus' in c){return c.focus().then(w=>w&&w.navigate?w.navigate(url):null).catch(()=>clients.openWindow(url))}}return clients.openWindow(url)}))});`;
 
 const HTML = `<!doctype html>
 <html lang="pt-BR">
@@ -771,6 +773,27 @@ window.lotClass=async(i)=>{const g=(window._grp||[])[i];if(!g)return;const cat=$
   const cn=(S.cats.find(c=>c.id===cat)||{}).name||'';
   if(err)toast(ok+' de '+g.rows.length+' classificados. Erro: '+err.message);else toast((ok===1?'1 lançamento':ok+' lançamentos')+' em '+cn+(rule?' · regra criada':''));route()};
 
+// ---------- Notificações no celular (Web Push) ----------
+const pushOk=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;
+const ehIOS=()=>/iPhone|iPad|iPod/.test(navigator.userAgent);
+const instalado=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+const b64uBytes=(s)=>{s=s.replace(/-/g,'+').replace(/_/g,'/');s+='='.repeat((4-s.length%4)%4);return Uint8Array.from(atob(s),c=>c.charCodeAt(0))};
+async function pushSub(){if(!pushOk())return null;const r=await navigator.serviceWorker.ready;return r.pushManager.getSubscription()}
+async function notifRefresh(){const el=$('#notif');if(!el)return;let h='';
+  if(!pushOk())h=ehIOS()&&!instalado()?'<p class="small" style="margin:0">No iPhone, as notificações só funcionam com o app na tela de início: abra este endereço no <b>Safari</b>, toque em <b>Compartilhar → Adicionar à Tela de Início</b>, abra pelo ícone e volte aqui. Precisa do iOS 16.4 ou mais novo.</p>':'<p class="small muted" style="margin:0">Este navegador não recebe notificações. No celular, use o app instalado na tela de início.</p>';
+  else if(Notification.permission==='denied')h='<p class="small" style="margin:0">As notificações estão <b>bloqueadas</b> para este app. Libere nas configurações do aparelho (Notificações → Family Finance) e volte aqui.</p>';
+  else{let sub=null;try{sub=await pushSub()}catch(e){}
+    h=sub?'<p class="small" style="margin:0 0 10px"><span class="pill">ligadas neste aparelho</span> Você recebe um aviso por dia, perto das 19h, quando houver lançamentos para classificar. Tocando no aviso, abre a Revisão.</p><div class="row"><button class="ghost" onclick="notifOff()">Desligar</button><button onclick="notifTest()">Enviar teste</button></div>'
+     :'<p class="small muted" style="margin:0 0 10px">Receba um aviso por dia, perto das 19h, quando houver lançamentos para classificar. Cada pessoa liga no próprio celular.</p><button onclick="notifOn()">Ligar neste aparelho</button>'}
+  if($('#notif'))$('#notif').innerHTML=h}
+window.notifOn=async()=>{try{const p=await Notification.requestPermission();if(p!=='granted'){toast('Permissão negada: libere as notificações nas configurações do aparelho');notifRefresh();return}
+  const k=await sb.functions.invoke('push',{body:{op:'key'}});if(k.error||!k.data?.key)throw new Error(k.error?.message||'sem chave');
+  const r=await navigator.serviceWorker.ready;let sub=await r.pushManager.getSubscription();if(!sub)sub=await r.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:b64uBytes(k.data.key)});
+  const s=await sb.functions.invoke('push',{body:{op:'subscribe',subscription:sub.toJSON()}});if(s.error)throw new Error(s.error.message);
+  toast('Notificações ligadas neste aparelho');notifRefresh()}catch(e){toast('Não consegui ligar: '+(e.message||e))}};
+window.notifOff=async()=>{try{const sub=await pushSub();if(sub){await sb.functions.invoke('push',{body:{op:'unsubscribe',endpoint:sub.endpoint}});await sub.unsubscribe()}toast('Notificações desligadas neste aparelho');notifRefresh()}catch(e){toast('Não consegui desligar: '+(e.message||e))}};
+window.notifTest=async()=>{const r=await sb.functions.invoke('push',{body:{op:'test'}});if(r.error)toast('Não enviou: '+r.error.message);else toast(r.data?.enviados?'Aviso de teste enviado: deve chegar em alguns segundos':'Não chegou a nenhum aparelho; desligue e ligue de novo')};
+
 // ---------- Mais (conexão, sincronizações, membros, duplicidades, aparência, documentos) ----------
 const haQuanto=(iso)=>{if(!iso)return '—';const min=Math.round((Date.now()-new Date(iso).getTime())/60000);if(min<2)return 'agora';if(min<60)return 'há '+min+' min';const h=Math.round(min/60);if(h<48)return 'há '+h+(h===1?' hora':' horas');return 'há '+Math.round(h/24)+' dias'};
 const dataHora=(iso)=>iso?new Date(iso).toLocaleString('pt-BR',{timeZone:TZ,day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
@@ -789,11 +812,13 @@ async function renderOperacao(q){const _rt=RT;
    '<h2 id="dup">Possíveis duplicidades</h2>'+(dups.length?'<div class="list">'+dups.map(d=>{const x=d.detail||{};return '<div class="item"><div class="d"><div class="t">'+esc(x.description||x.descricao||'Lançamento '+String(d.transaction_id||'').slice(0,8))+'</div><div class="s">'+(x.event_date?fmtD(x.event_date)+' · ':'')+'aberta '+haQuanto(d.created_at)+'</div></div><div class="a num">'+(x.amount!=null?brl(x.amount):'')+'</div></div>'}).join('')+'</div><p class="small muted">Lançamentos que parecem repetidos ficam fora das somas até serem conferidos.</p>':'<div class="panel small muted">Nenhuma duplicidade em aberto. O sistema confere a cada sincronização.</div>')+
    '<h2>Sincronizações</h2><div class="list">'+(jobs||[]).map(j=>{const sj=SYNC[j.status]||[String(j.status||'').toLowerCase(),'warn'];return '<div class="item"><div class="d"><div class="t">'+dataHora(j.started_at)+' · '+esc(ORIGEM[j.trigger]||j.trigger||'')+'</div><div class="s">'+j.tx_fetched+' lidos, '+j.tx_new+' novos, '+j.tx_updated+' alterados</div></div><span class="pill'+(sj[1]?' '+sj[1]:'')+'">'+esc(sj[0])+'</span></div>'}).join('')+'</div>'+
    '<h2>Membros</h2><div class="list">'+(members||[]).map(m=>'<div class="item"'+(['owner','admin'].includes(S.member?.role)&&m.id!==S.member?.id?' onclick="gerarAcesso(\\''+m.id+'\\',\\''+esc(m.display_name)+'\\')"':'')+'><div class="d"><div class="t">'+esc(m.display_name)+' <span class="muted" style="font-weight:400">('+esc(PAPEL[m.role]||m.role)+')</span></div><div class="s">'+(m.email?esc(m.email):'sem e-mail')+'</div></div><span class="pill'+(m.auth_user_id?'':' warn')+'">'+(m.auth_user_id?'com login':'sem login')+'</span></div>').join('')+'</div>'+(['owner','admin'].includes(S.member?.role)?'<p class="small muted">Toque num membro para gerar um link de primeiro acesso ou de troca de senha (vale 1 hora, uso único).</p>':'')+
+   '<h2>Notificações</h2><div class="panel" id="notif"><p class="small muted" style="margin:0">Verificando…</p></div>'+
    '<h2>Aparência</h2><div class="panel"><div class="seg" id="tema" role="group" aria-label="Tema">'+[['auto','Automático'],['claro','Claro'],['escuro','Escuro']].map(([k,l])=>'<button type="button" data-t="'+k+'" class="'+(tema===k?'on':'')+'" aria-pressed="'+(tema===k)+'" onclick="setTema(&quot;'+k+'&quot;)">'+l+'</button>').join('')+'</div><p class="small muted" style="margin:6px 0 0">Automático segue o celular ou o computador. A escolha fica guardada neste aparelho.</p></div>'+
    '<h2>Cadastros</h2><div class="list"><a class="item" href="#fixas" style="text-decoration:none;color:inherit"><div class="d"><div class="t">Contas fixas</div><div class="s">valores, financiamentos e histórico de reajustes</div></div><span class="muted">›</span></a></div>'+
    '<h2>Documentação do projeto</h2><div class="list">'+((docs||[]).map(d=>'<div class="item" onclick="openDoc(\\''+esc(d.name)+'\\')"><div class="d"><div class="t">'+esc(d.name)+'</div><div class="s">atualizado '+new Date(d.updated_at).toLocaleDateString('pt-BR',{timeZone:TZ})+'</div></div><span class="muted">›</span></div>').join('')||'<div class="item">Nenhum documento ainda.</div>')+'</div>'+
    '<p class="small muted">App v${APP_VERSION} · '+esc(S.member?.display_name||'')+' · <a href="#" id="out">sair</a></p></div>';
   $('#out').onclick=(e)=>{e.preventDefault();sb.auth.signOut().then(()=>location.reload())};
+  notifRefresh();
   if(q&&q.get('sec')==='dup')requestAnimationFrame(()=>{const e=$('#dup');if(e)e.scrollIntoView()});
 }
 window.gerarAcesso=async(id,nome)=>{openSheet('<b>Acesso de '+esc(nome)+'</b><p class="small muted">Gerando link…</p>');const {data,error}=await sb.functions.invoke('member-invite',{body:{member_id:id}});
