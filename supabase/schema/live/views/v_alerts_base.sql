@@ -147,4 +147,22 @@ UNION ALL
     NULL::date AS ref_date
    FROM data_quality_issues
   WHERE ((data_quality_issues.kind = 'duplicate_suspect'::text) AND (data_quality_issues.status = 'open'::text))
- HAVING (count(*) > 0);
+ HAVING (count(*) > 0)
+UNION ALL
+ SELECT 'backup'::text AS kind,
+    'alta'::text AS severity,
+    'Backup atrasado'::text AS title,
+    ('Último backup ok: '::text || COALESCE(fmt_br((max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'SUCCESS'::text)) AT TIME ZONE 'America/Cuiaba'::text), 'DD/MM HH24:MI'::text), 'nunca'::text)) AS detail,
+    NULL::numeric AS amount,
+    NULL::date AS ref_date
+   FROM backup_runs
+ HAVING (COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'SUCCESS'::text)), '-infinity'::timestamp with time zone) < (now() - '26:00:00'::interval))
+UNION ALL
+ SELECT 'restauracao'::text AS kind,
+    'media'::text AS severity,
+    'Teste de restauração do backup sem sucesso recente'::text AS title,
+    ('Último teste ok: '::text || COALESCE(fmt_br((max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'RESTORE_TEST_OK'::text)) AT TIME ZONE 'America/Cuiaba'::text), 'DD/MM'::text), 'nunca'::text)) AS detail,
+    NULL::numeric AS amount,
+    NULL::date AS ref_date
+   FROM backup_runs
+ HAVING (COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'RESTORE_TEST_OK'::text)), '-infinity'::timestamp with time zone) < GREATEST((now() - '8 days'::interval), COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status ~~ 'RESTORE_TEST_%'::text)), '-infinity'::timestamp with time zone)));

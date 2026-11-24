@@ -1,0 +1,22 @@
+// bun railway/retencao.test.ts — testa a regra de retenção sem tocar no bucket.
+import { escolherApagar, dataDaChave } from "./retencao.ts";
+let falhas = 0; const T = (n: string, c: boolean) => { console.log((c ? "OK " : "FALHA ") + n); if (!c) falhas++; };
+const k = (d: Date) => "familia-finance/" + d.toISOString().replace(/[:.]/g, "-") + ".json.gz";
+const dia = (s: string) => new Date(s + "T09:00:30.177Z");
+const serie = (ini: string, n: number) => Array.from({ length: n }, (_, i) => k(new Date(dia(ini).getTime() + i * 86_400_000)));
+T("lê a data da chave", dataDaChave("familia-finance/2026-11-24T09-00-30-177Z.json.gz")?.toISOString() === "2026-11-24T09:00:30.177Z");
+T("chave estranha é ignorada", dataDaChave("familia-finance/outra.json.gz") === null);
+const hoje = serie("2026-11-05", 20);
+T("hoje (20 backups desde 05/11): não apaga nada", escolherApagar(hoje, dia("2026-11-24")).length === 0);
+const ano = serie("2026-01-01", 365);
+const ap = escolherApagar(ano, dia("2026-12-31"));
+const resta = ano.filter((x) => !ap.includes(x));
+T("1 ano diário: guarda os últimos 35 dias", serie("2026-11-27", 35).every((x) => resta.includes(x)));
+T("1 ano diário: guarda o 1º de cada mês", ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10"].every((m) => resta.includes(k(dia(`2026-${m}-01`)))));
+T("1 ano diário: apaga o meio dos meses antigos", ap.includes(k(dia("2026-03-15"))) && !ap.includes(k(dia("2026-12-20"))));
+T("1 ano diário: sobram 36 dias recentes (26/11–31/12) + 1º de jan–nov = 47", resta.length === 47);
+T("nunca apaga o mais recente", !ap.includes(ano[ano.length - 1]));
+T("com poucos backups (30) não apaga nada mesmo antigos", escolherApagar(serie("2025-01-01", 30), dia("2026-12-31")).length === 0);
+T("nunca deixa menos de 30", (() => { const s = serie("2025-01-10", 31); const a = escolherApagar(s, dia("2026-12-31")); return s.length - a.length >= 30; })());
+console.log(falhas ? `RESULTADO: HÁ FALHAS (${falhas})` : "RESULTADO: TUDO OK");
+process.exit(falhas ? 1 : 0);
