@@ -1,9 +1,9 @@
-# Estado real — 13/11/2026 (frontend v0.24.2 · banco migração 0040)
+# Estado real — 13/11/2026 (frontend v0.24.2 · banco migração 0041)
 Status: implementado → testado → validado (documentos reais) → publicado. Nada é "resolvido" só porque compila.
 
 ## Produção
 - Frontend v0.24.1 no ar em 24/11 (correção de segurança: links e nomes maliciosos não executam código; antes: teto da fatura automático e notificações no celular) — Family Finance (nome e ícone novos; visual Cerrado; redesenho completo, Fases 1–5: voltar devolve o lugar, carregando/erro, fuso de Cuiabá, confirmações, Desfazer; Início com cards e detalhe de categoria; Lançamentos por dia com totais e "carregar mais", busca ao digitar, Revisão em lote por estabelecimento criando regra; Plano em 4 cards, Orçamento com "só este mês/deste mês em diante", Contas fixas com financiamentos, Reservas; tema no app, notebook em grade, teclado/leitor de tela, vocabulário novo). Publicado pelo serviço web do Railway, construído do GitHub (limite de 96 KB das Functions); página servida idêntica à testada; /health 0.24.0.
-- Banco: 44 migrações (0001–0040; numeração 0006–0009 repetida, use o version), 43 tabelas, 23 views security_invoker, RLS em todas; desde 24/11 (0035) toda leitura exige ser membro da família, e o cadastro aberto do Supabase Auth está desligado (Hugo).
+- Banco: 45 migrações (0001–0041; numeração 0006–0009 repetida, use o version), 43 tabelas, 23 views security_invoker, RLS em todas; desde 24/11 (0035) toda leitura exige ser membro da família, e o cadastro aberto do Supabase Auth está desligado (Hugo).
 - Sincronização: pg_cron 4×/dia (15 1,3,10,22 UTC) + pos-sync 10 min depois; últimas execuções SUCCESS.
 - Backup diário 09:00 UTC → bucket Railway, hash por releitura; último SUCCESS 12/11 09:03 UTC (1,42 MB). restore-check semanal (domingo 10:00 UTC) desde 12/11, comparando o restaurado com o próprio backup (0028).
 - Contas fixas: 30 ativas, R$ 50.300,14/mês — desde 12/11 incluem os financiamentos imobiliários (R$ 7.377,86, decisão do Hugo); as 24 sugeridas foram aceitas pelo Hugo em 12/11.

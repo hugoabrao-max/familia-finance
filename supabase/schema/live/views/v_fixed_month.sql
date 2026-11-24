@@ -34,7 +34,7 @@ create or replace view public.v_fixed_month with (security_invoker = on) as
                             WHEN ((b_1.payee_key IS NOT NULL) AND (t.pk = b_1.payee_key)) THEN 1
                             WHEN ((b_1.match_pattern IS NOT NULL) AND (t.nt ~~ (('%'::text || b_1.match_pattern) || '%'::text))) THEN 2
                             ELSE 3
-                        END, b_1.id) x
+                        END, (length(b_1.match_pattern)) DESC NULLS LAST, b_1.id) x
           GROUP BY x.mes, x.id
         )
  SELECT b.mes AS month,
