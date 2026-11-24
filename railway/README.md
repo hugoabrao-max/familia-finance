@@ -15,7 +15,7 @@ Version constant `APP_VERSION` (0.25.0 on 24/11/2026). The Supabase URL and publ
 Variables: none.
 
 ## backup
-Fetches the Supabase export from `BACKUP_URL` (v10: no secrets — no sync/backup tokens, no VAPID private key, no push_subscriptions), gzips it, writes `familia-finance/<timestamp>.json.gz` to the Railway S3 bucket, reads it back to verify the sha256, applies retention (keeps everything from the last 35 days plus the first backup of each month forever, never fewer than 30; rule in `retencao.ts`, tested by `bun railway/retencao.test.ts`) and reports the result to `BACKUP_URL + "/report"` (3 attempts, checks the response). Not encrypted at rest (decision pending with Hugo: needs a key kept outside Railway).
+Fetches the Supabase export from `BACKUP_URL` (v10: no secrets — no sync/backup tokens, no VAPID private key, no push_subscriptions), gzips it, writes `familia-finance/<timestamp>.json.gz` to the Railway S3 bucket, reads it back to verify the sha256, applies retention (keeps everything from the last 35 days plus the first backup of each month forever, never fewer than 30; rule in `retencao.ts`, tested by `bun railway/retencao.test.ts`) and reports the result to `BACKUP_URL + "/report"` (3 attempts, checks the response). Not encrypted at rest — Hugo decided on 24/11/2026 to keep it unencrypted for now (encryption would need a key kept outside Railway).
 
 ## restore-check
 Lists the whole bucket (paginated), refuses a newest backup older than 36 h, downloads it, decompresses it, POSTs it to `BACKUP_URL + "/restore"` (restores into the isolated `restore_test` schema and compares with production). Reports failures to `/report`.
