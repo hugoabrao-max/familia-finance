@@ -1279,7 +1279,7 @@ create or replace view public.v_card_future_installments with (security_invoker 
            FROM (transactions t
              JOIN accounts a ON (((a.id = t.account_id) AND (a.type = 'CREDIT'::text))))
           WHERE ((t.installment_total > 1) AND (NOT t.is_deleted_at_source))
-          GROUP BY t.account_id, (norm_text(t.description)), t.installment_total, ((date_trunc('month'::text, (COALESCE(t.bill_closing_date, t.event_date))::timestamp with time zone) - (((t.installment_number - 1) || ' month'::text))::interval))
+          GROUP BY t.account_id, (norm_text(t.description)), t.installment_total, (date_trunc('month'::text, (COALESCE(t.bill_closing_date, t.event_date))::timestamp with time zone) - (((t.installment_number - 1) || ' month'::text))::interval)
         )
  SELECT s.description,
     s.holder_name,
