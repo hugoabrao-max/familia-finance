@@ -1,6 +1,7 @@
 // Teste do teto da fatura do cartão (v0.23.1: automático com opção de fixar) com Supabase simulado e números reais de nov/26.
 // Uso: node teto.test.js <url_app> <dir_saida>   (requer sb.mjs; ver README.md)
 const { chromium } = require('playwright');
+const FORA = []; // chamadas que escaparam do simulado
 const fs = require('fs');
 const APP = process.argv[2] || 'http://localhost:3999/';
 const OUT = process.argv[3] || '.';
@@ -32,6 +33,8 @@ function data(t, u) {
     const ctx = await b.newContext({ viewport: vp, serviceWorkers: 'block', colorScheme: scheme || 'light' }); const p = await ctx.newPage();
     const errs = []; p.on('pageerror', e => errs.push(e.message));
     await p.clock.setFixedTime(new Date('2026-11-12T15:00:00-04:00'));
+    // barra tudo que não for simulado abaixo (nada chega ao Supabase real); rotas registradas depois têm prioridade
+    await p.route(u => !u.href.startsWith(APP), r => { const h = new URL(r.request().url()).hostname; if (!/fonts\.(googleapis|gstatic)\.com$/.test(h)) FORA.push(r.request().url()); return r.abort(); });
     await p.route('https://cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: SB }));
     await p.route('https://fonts.googleapis.com/**', r => r.abort());
     await p.route('**/auth/v1/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: '{}' }));
@@ -81,5 +84,7 @@ function data(t, u) {
   ok('sem erros de JS', errs.length === 0, errs.join(' | '));
   await ctx.close(); await b.close();
   for (const r of results) console.log(r.join('  '));
+  { const okF = FORA.length === 0; results.push([okF ? 'OK ' : 'FALHA', 'nenhuma chamada saiu do simulado', FORA.slice(0, 3).join(' ')]); if (!okF) console.log('FALHA', 'nenhuma chamada saiu do simulado', FORA.slice(0, 3).join(' ')); }
   console.log(results.filter(r => r[0] !== 'OK ').length ? 'RESULTADO: HÁ FALHAS' : 'RESULTADO: TUDO OK (' + results.length + ' verificações)');
+  process.exitCode = results.some(r => r[0] !== 'OK ') ? 1 : 0;
 })().catch(e => { console.error('ERRO NO TESTE', e); process.exit(1); });

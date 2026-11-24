@@ -30,3 +30,8 @@ notebook. Reinicie o servidor depois de editar `app.ts` (ele carrega o arquivo a
 `push.test.js` cobre as notificações no celular (v0.24): seção Notificações em Mais, ligar (pede a chave pública do servidor e grava o aparelho), enviar teste, desligar, orientação para iPhone fora da tela de início e uma mensagem de push real entregue ao service worker do app (via Chrome DevTools) virando notificação com o link da Revisão. Usa o Chromium completo (`channel: chromium`), porque o headless-shell nega notificações.
 
 `seguranca.test.js` cobre a correção de segurança (v0.24.1): links com código no parâmetro `month` (Categoria, Lançamentos, Orçamento) não executam nada nem envenenam o mês guardado; nomes de membro e de documento com apóstrofo e código aparecem como texto e abrem pelo id/nome certo; toda chamada que não é simulada é barrada (nada vai para o Supabase real). Sai com código 1 se alguma verificação falhar.
+
+Desde 24/11/2026 todos os scripts terminam com código 1 quando alguma verificação falha (antes só imprimiam "HÁ FALHAS") e barram qualquer chamada que não esteja simulada (nada chega ao Supabase real); essa barreira vira uma verificação a mais em cada script.
+
+## Banco (`tests/db/rls.sh`)
+Sobe o esquema do kit (`install/01_schema.sql`, gerado de `supabase/schema/live` por `install/build.py`) num Postgres 16 local com dados iniciais e confere, em todas as tabelas e views: quem não é da família e o anônimo não leem nada (exceto 3 views que só devolvem zeros), o membro lê; avisos de backup só para membros e aparecem quando o backup atrasa; o backup não leva segredos; toda tabela tem RLS. Rodar depois de cada migração: `python3 install/build.py && bash tests/db/rls.sh`.

@@ -156,7 +156,7 @@ UNION ALL
     NULL::numeric AS amount,
     NULL::date AS ref_date
    FROM backup_runs
- HAVING (COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'SUCCESS'::text)), '-infinity'::timestamp with time zone) < (now() - '26:00:00'::interval))
+ HAVING ((( SELECT my_household() AS my_household) IS NOT NULL) AND (COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'SUCCESS'::text)), '-infinity'::timestamp with time zone) < (now() - '26:00:00'::interval)))
 UNION ALL
  SELECT 'restauracao'::text AS kind,
     'media'::text AS severity,
@@ -165,4 +165,4 @@ UNION ALL
     NULL::numeric AS amount,
     NULL::date AS ref_date
    FROM backup_runs
- HAVING (COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'RESTORE_TEST_OK'::text)), '-infinity'::timestamp with time zone) < GREATEST((now() - '8 days'::interval), COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status ~~ 'RESTORE_TEST_%'::text)), '-infinity'::timestamp with time zone)));
+ HAVING ((( SELECT my_household() AS my_household) IS NOT NULL) AND (COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'RESTORE_TEST_OK'::text)), '-infinity'::timestamp with time zone) < GREATEST((now() - '8 days'::interval), COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status ~~ 'RESTORE_TEST_%'::text)), '-infinity'::timestamp with time zone))));

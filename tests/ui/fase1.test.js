@@ -1,5 +1,6 @@
 // Teste da Fase 1 com Supabase simulado. Uso: node fase1.test.js <url_app> <dir_saida>
 const { chromium } = require('playwright');
+const FORA = []; // chamadas que escaparam do simulado
 const fs = require('fs');
 const APP = process.argv[2] || 'http://localhost:3999/';
 const OUT = process.argv[3] || '.';
@@ -37,6 +38,8 @@ function data(table, url) {
     const p = await ctx.newPage();
     const errs = []; p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error' && !/Failed to load resource/.test(m.text())) errs.push(m.text()); });
     if (clockIso) await p.clock.setFixedTime(new Date(clockIso));
+    // barra tudo que não for simulado abaixo (nada chega ao Supabase real); rotas registradas depois têm prioridade
+    await p.route(u => !u.href.startsWith(APP), r => { const h = new URL(r.request().url()).hostname; if (!/fonts\.(googleapis|gstatic)\.com$/.test(h)) FORA.push(r.request().url()); return r.abort(); });
     await p.route('https://cdn.jsdelivr.net/**', r => r.fulfill({ status: 200, contentType: 'application/javascript', body: SB }));
     await p.route('https://fonts.googleapis.com/**', r => r.abort());
     await p.route('**/auth/v1/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ id: 'u1', aud: 'authenticated' }) }));
@@ -139,5 +142,7 @@ function data(table, url) {
   ok('sem erros de JS (notebook)', errs.length === 0, errs.join(' | '));
   await ctx.close(); await b.close();
   for (const r of results) console.log(r.join('  '));
+  { const okF = FORA.length === 0; results.push([okF ? 'OK ' : 'FALHA', 'nenhuma chamada saiu do simulado', FORA.slice(0, 3).join(' ')]); if (!okF) console.log('FALHA', 'nenhuma chamada saiu do simulado', FORA.slice(0, 3).join(' ')); }
   console.log(results.filter(r => r[0] !== 'OK ').length ? 'RESULTADO: HÁ FALHAS' : 'RESULTADO: TUDO OK (' + results.length + ' verificações)');
+  process.exitCode = results.some(r => r[0] !== 'OK ') ? 1 : 0;
 })().catch(e => { console.error('ERRO NO TESTE', e); process.exit(1); });

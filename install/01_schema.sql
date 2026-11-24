@@ -891,16 +891,18 @@ CREATE OR REPLACE FUNCTION public.export_backup()
 AS $function$
 declare t text; out jsonb := '{}'::jsonb; part jsonb;
 begin
+  -- v10 (24/11/2026): sem segredos — fora sync_token, backup_token, a chave privada das notificações (vapid_private_jwk)
+  -- e os aparelhos inscritos (push_subscriptions: chaves de cada aparelho; basta ligar de novo no app).
   -- v9: todas as tabelas do esquema public (novas tabelas entram automaticamente)
   for t in select table_name from information_schema.tables
-           where table_schema='public' and table_type='BASE TABLE' and table_name <> 'app_settings' order by 1
+           where table_schema='public' and table_type='BASE TABLE' and table_name not in ('app_settings', 'push_subscriptions') order by 1
   loop
     execute format('select coalesce(jsonb_agg(to_jsonb(x)), ''[]''::jsonb) from public.%I x', t) into part;
     out := out || jsonb_build_object(t, part);
   end loop;
-  select coalesce(jsonb_agg(to_jsonb(s)), '[]'::jsonb) into part from app_settings s where key not in ('sync_token','backup_token');
+  select coalesce(jsonb_agg(to_jsonb(s)), '[]'::jsonb) into part from app_settings s where key not in ('sync_token','backup_token','vapid_private_jwk');
   out := out || jsonb_build_object('app_settings', part);
-  return jsonb_build_object('schema_version', 9, 'exported_at', now(), 'tables', out);
+  return jsonb_build_object('schema_version', 10, 'exported_at', now(), 'tables', out);
 end $function$
 ;
 
@@ -1638,7 +1640,25 @@ UNION ALL
     NULL::date AS ref_date
    FROM data_quality_issues
   WHERE ((data_quality_issues.kind = 'duplicate_suspect'::text) AND (data_quality_issues.status = 'open'::text))
- HAVING (count(*) > 0);
+ HAVING (count(*) > 0)
+UNION ALL
+ SELECT 'backup'::text AS kind,
+    'alta'::text AS severity,
+    'Backup atrasado'::text AS title,
+    ('Último backup ok: '::text || COALESCE(fmt_br((max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'SUCCESS'::text)) AT TIME ZONE 'America/Cuiaba'::text), 'DD/MM HH24:MI'::text), 'nunca'::text)) AS detail,
+    NULL::numeric AS amount,
+    NULL::date AS ref_date
+   FROM backup_runs
+ HAVING ((( SELECT my_household() AS my_household) IS NOT NULL) AND (COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'SUCCESS'::text)), '-infinity'::timestamp with time zone) < (now() - '26:00:00'::interval)))
+UNION ALL
+ SELECT 'restauracao'::text AS kind,
+    'media'::text AS severity,
+    'Teste de restauração do backup sem sucesso recente'::text AS title,
+    ('Último teste ok: '::text || COALESCE(fmt_br((max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'RESTORE_TEST_OK'::text)) AT TIME ZONE 'America/Cuiaba'::text), 'DD/MM'::text), 'nunca'::text)) AS detail,
+    NULL::numeric AS amount,
+    NULL::date AS ref_date
+   FROM backup_runs
+ HAVING ((( SELECT my_household() AS my_household) IS NOT NULL) AND (COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status = 'RESTORE_TEST_OK'::text)), '-infinity'::timestamp with time zone) < GREATEST((now() - '8 days'::interval), COALESCE(max(backup_runs.started_at) FILTER (WHERE (backup_runs.status ~~ 'RESTORE_TEST_%'::text)), '-infinity'::timestamp with time zone))));
 
 create or replace view public.v_category_month with (security_invoker = on) as
  SELECT month,
