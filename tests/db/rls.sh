@@ -13,7 +13,13 @@ M=11111111-1111-1111-1111-111111111111; E=22222222-2222-2222-2222-222222222222
   grep -v "create extension if not exists pg_cron\|create extension if not exists pg_net" "$ROOT/install/01_schema.sql"
   sed -e 's/{{FAMILIA}}/Familia Teste/g;s/{{TITULAR_NOME}}/Teste/g;s/{{TITULAR_EMAIL}}/teste@exemplo.com/g;s/{{TITULAR_EXTRATO}}/teste da silva/g' "$ROOT/install/02_seed.sql"
   cat <<SQL
-insert into auth.users(id,email) values ('$M','teste@exemplo.com'),('$E','estranho@fora.com');
+insert into auth.users(id,email,email_confirmed_at) values ('$M','teste@exemplo.com',now()),('$E','estranho@fora.com',now());
+-- convite pendente: conta criada sem confirmar o e-mail não pega a vaga; ao confirmar, pega
+insert into household_members(household_id, display_name, role, email) select household_id, 'Convidado', 'member', 'convidado@exemplo.com' from household_members limit 1;
+insert into auth.users(id,email) values ('33333333-3333-3333-3333-333333333333','convidado@exemplo.com');
+create temp table vinc as select (select auth_user_id is not null from household_members where email='convidado@exemplo.com') antes_confirmar;
+update auth.users set email_confirmed_at = now() where id = '33333333-3333-3333-3333-333333333333';
+insert into vinc select (select auth_user_id is not null from household_members where email='convidado@exemplo.com');
 insert into app_settings(key,value) values ('vapid_private_jwk','{"x":1}') on conflict do nothing;
 insert into backup_runs(status) values ('SUCCESS');
 -- conta por objeto como cada papel, numa tabela temporária
@@ -35,7 +41,7 @@ select 'FALHA estranho lê ' || obj || ': ' || n from r where papel='estranho' a
 select 'FALHA anônimo lê ' || obj || ': ' || n from r where papel='anonimo' and n > 0
   and obj not in ('v_card_teto (view)','v_sim_base (view)','v_net_worth (view)');
 select 'FALHA membro não lê categorias' where coalesce((select n from r where papel='membro' and obj='categories'),0) < 40;
-select 'FALHA membro não lê a família' where coalesce((select n from r where papel='membro' and obj='household_members'),0) <> 1;
+select 'FALHA membro não lê a família' where coalesce((select n from r where papel='membro' and obj='household_members'),0) < 1;
 begin; set local role authenticated; select set_config('request.jwt.claim.sub','$E',true);
 select 'FALHA estranho vê valor em v_card_teto' from v_card_teto where coalesce(teto,0)<>0 or coalesce(receita_base,0)<>0 or coalesce(comprometido,0)<>0 limit 1;
 select 'FALHA estranho vê valor em v_net_worth' from v_net_worth where coalesce(patrimonio_liquido,0)<>0 or coalesce(bens,0)<>0 limit 1;
@@ -47,6 +53,8 @@ select 'FALHA membro não vê aviso de backup atrasado' where not exists (select
 rollback;
 select 'FALHA backup leva segredo: ' || (e->>'key') from jsonb_array_elements(export_backup()->'tables'->'app_settings') e where e->>'key' in ('sync_token','backup_token','vapid_private_jwk');
 select 'FALHA backup leva push_subscriptions' where (export_backup()->'tables') ? 'push_subscriptions';
+select 'FALHA convite pendente foi ligado antes de confirmar o e-mail' where (select bool_or(antes_confirmar) from (select antes_confirmar from vinc limit 1) x);
+select 'FALHA convite não foi ligado depois de confirmar o e-mail' where not (select bool_and(antes_confirmar) from (select antes_confirmar from vinc offset 1) x);
 select 'FALHA tabela sem RLS: ' || relname from pg_class where relnamespace='public'::regnamespace and relkind='r' and not relrowsecurity;
 select 'OK ' || count(*) filter (where papel='estranho') || ' objetos conferidos por papel; membro lê ' || count(*) filter (where papel='membro' and n>0) || ', estranho ' || count(*) filter (where papel='estranho' and n>0) || ' (só views de zeros), anônimo ' || count(*) filter (where papel='anonimo' and n>0) from r;
 SQL

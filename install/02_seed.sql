@@ -1,4 +1,4 @@
--- Family Finance — dados iniciais de uma instalação NOVA (sem nenhum dado da família Abrão).
+-- Family Finance — dados iniciais de uma instalação NOVA (sem nenhum dado da família de origem).
 -- Antes de rodar, troque os marcadores:
 --   {{FAMILIA}}           nome da família, ex.: Família Silva
 --   {{TITULAR_NOME}}      nome de quem administra, ex.: Pedro

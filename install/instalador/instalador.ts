@@ -120,7 +120,8 @@ async function main() {
   }
   if (!did("seed")) {
     const s: any = st;
-    const seed = ASSETS.seed.replaceAll("{{FAMILIA}}", sqlStr(s.family)).replaceAll("{{TITULAR_NOME}}", sqlStr(s.nome)).replaceAll("{{TITULAR_EMAIL}}", sqlStr(s.email)).replaceAll("{{TITULAR_EXTRATO}}", sqlStr(s.pix));
+    // função na substituição: "$'", "$&" etc. digitados num nome não viram padrões especiais do replaceAll
+    const seed = ASSETS.seed.replaceAll("{{FAMILIA}}", () => sqlStr(s.family)).replaceAll("{{TITULAR_NOME}}", () => sqlStr(s.nome)).replaceAll("{{TITULAR_EMAIL}}", () => sqlStr(s.email)).replaceAll("{{TITULAR_EXTRATO}}", () => sqlStr(s.pix));
     await api(SB, sbTok, `/v1/projects/${ref}/database/query`, { method: "POST", json: { query: seed } });
     const c: any[] = await api(SB, sbTok, `/v1/projects/${ref}/database/query`, { method: "POST", json: { query: "select (select count(*) from categories)::int c, (select count(*) from household_members)::int m" } });
     if (!(c?.[0]?.c >= 40 && c?.[0]?.m === 1)) falha("Os dados iniciais não entraram: " + JSON.stringify(c));
@@ -211,7 +212,7 @@ async function conectarBanco(sbTok: string) {
   say("  3. No painel da Pluggy, copie o ID do item conectado (um código com hífens).");
   const cid = await ask("CLIENT ID da Pluggy", { min: 10 });
   const csec = await ask("CLIENT SECRET da Pluggy", { min: 10 });
-  const items = (await ask("ID do item (se tiver mais de um, separe por vírgula)", { re: /^[0-9a-f-]{20,}(\s*,\s*[0-9a-f-]{20,})*$/i, dica: "O ID tem letras, números e hífens, como 3b1fad88-40cc-4d56-8bd5-4c316243310d." })).replace(/\s/g, "");
+  const items = (await ask("ID do item (se tiver mais de um, separe por vírgula)", { re: /^[0-9a-f-]{20,}(\s*,\s*[0-9a-f-]{20,})*$/i, dica: "O ID tem letras, números e hífens, como 12345678-abcd-4ef0-9876-0123456789ab." })).replace(/\s/g, "");
   await api(SB, sbTok, `/v1/projects/${ref}/secrets`, { method: "POST", json: [{ name: "PLUGGY_CLIENT_ID", value: cid }, { name: "PLUGGY_CLIENT_SECRET", value: csec }] });
   await api(SB, sbTok, `/v1/projects/${ref}/database/query`, { method: "POST", json: { query: `insert into app_settings(key,value) values ('pluggy_item_ids','${sqlStr(items)}') on conflict (key) do update set value=excluded.value, updated_at=now()` } });
   await api(SB, sbTok, `/v1/projects/${ref}/database/query`, { method: "POST", json: { query: "select cron.unschedule(jobname) from cron.job where jobname in ('pluggy-sync-diario','pos-sync')" } }).catch(() => null);

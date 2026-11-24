@@ -15,7 +15,8 @@ const s3 = new S3Client({
 // ---- retenção (cópia de retencao.ts) ----
 const PREFIX = "familia-finance/";
 function dataDaChave(key: string): Date | null {
-  const m = /^familia-finance\/(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z\.json\.gz$/.exec(key);
+  if (!key.startsWith(PREFIX)) return null;
+  const m = /^(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})-(\d{3})Z\.json\.gz$/.exec(key.slice(PREFIX.length));
   if (!m) return null;
   const d = new Date(`${m[1]}T${m[2]}:${m[3]}:${m[4]}.${m[5]}Z`);
   return isNaN(d.getTime()) ? null : d;

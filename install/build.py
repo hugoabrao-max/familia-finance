@@ -66,7 +66,8 @@ for n, s in fdone:
 rest = []
 for p in ['policies.sql', 'triggers.sql', 'grants.sql']:
     s = '\n'.join(l for l in read(p).split('\n') if not any(t in l for t in SKIP_TABLES)); ok, err = psql(s); assert ok, (p, err); rest.append(f'-- {p}\n' + s)
-auth_trg = "create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_auth_user();"
+auth_trg = ("create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_auth_user();\n"
+            "create trigger on_auth_user_confirmed after update of email_confirmed_at on auth.users for each row when (old.email_confirmed_at is null and new.email_confirmed_at is not null) execute function public.handle_new_auth_user();")
 ok, err = psql(auth_trg); assert ok, err
 
 out = ['-- Family Finance — esquema completo para um projeto Supabase NOVO (gerado por install/build.py a partir de supabase/schema/live).',
