@@ -1,4 +1,4 @@
-// Família Finance AI — pluggy-sync (v1.3.4)
+// Família Finance AI — pluggy-sync (v1.3.5)
 // Sincroniza itens do conector MeuPluggy (Pluggy) para o Supabase.
 // Autenticação da chamada: header x-sync-token = app_settings.sync_token
 // ou Authorization: Bearer <service_role_key>.
@@ -11,6 +11,8 @@
 // v1.3.2: compras no exterior gravadas em BRL (amountInAccountCurrency); moeda/valor originais em original_*.
 // v1.3.4 (12/11/2026): não grava bill_closing_date — é calculado por assign_card_competence (pos-sync) a partir do
 //   billPostDate; o valor da Pluggy (vazio na fatura aberta) apagava o vínculo até o pos-sync seguinte.
+// v1.3.5 (24/11/2026): tempo limite de 30 s por chamada à Pluggy (com novas tentativas); sincronização que ficou
+//   "RUNNING" além do bloqueio (função encerrada no meio) é marcada FAILED com o motivo, em vez de ficar rodando para sempre.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
@@ -19,6 +21,7 @@ const HOUSEHOLD_ID = "00000000-0000-0000-0000-000000000001";
 const LOCK_MINUTES = 20;
 const OVERLAP_DAYS = 10;
 const INITIAL_DAYS = 365;
+const HTTP_TIMEOUT_MS = 30_000;
 
 const sb = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -68,7 +71,7 @@ class Pluggy {
   apiKey = "";
   async auth() {
     const r = await fetch(`${PLUGGY}/auth`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(HTTP_TIMEOUT_MS),
       body: JSON.stringify({ clientId: Deno.env.get("PLUGGY_CLIENT_ID"), clientSecret: Deno.env.get("PLUGGY_CLIENT_SECRET") }),
     });
     if (!r.ok) throw new Error(`Pluggy auth ${r.status}: ${await r.text()}`);
@@ -76,7 +79,9 @@ class Pluggy {
   }
   async getUrl(u: URL): Promise<Json> {
     for (let attempt = 0; attempt < 4; attempt++) {
-      const r = await fetch(u, { headers: { "X-API-KEY": this.apiKey } });
+      let r: Response;
+      try { r = await fetch(u, { headers: { "X-API-KEY": this.apiKey }, signal: AbortSignal.timeout(HTTP_TIMEOUT_MS) }); }
+      catch (e) { if (attempt < 3) { await new Promise((res) => setTimeout(res, 800 * 2 ** attempt)); continue; } throw new Error(`Pluggy GET ${u.pathname}: sem resposta (${(e as Error).name})`); }
       if (r.ok) return await r.json();
       const body = await r.text();
       if (r.status === 429 || r.status >= 500) { await new Promise((res) => setTimeout(res, 800 * 2 ** attempt)); continue; }
@@ -154,6 +159,9 @@ Deno.serve(async (req) => {
   const forceFrom = typeof body.from === "string" ? body.from : null;
 
   const since = new Date(Date.now() - LOCK_MINUTES * 60_000).toISOString();
+  // job preso em RUNNING além do bloqueio = a função foi encerrada no meio; registra como falha
+  await sb.from("sync_jobs").update({ status: "FAILED", finished_at: new Date().toISOString(), summary: { error: "interrompida: a função foi encerrada antes de terminar (tempo limite)" } })
+    .eq("status", "RUNNING").lt("started_at", since);
   const { data: running } = await sb.from("sync_jobs").select("id").eq("status", "RUNNING").gte("started_at", since).limit(1);
   if (running && running.length) return new Response(JSON.stringify({ error: "sync_running", job: running[0].id }), { status: 409 });
 

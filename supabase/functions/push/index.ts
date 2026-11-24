@@ -1,5 +1,8 @@
 // Notificações no celular (Web Push) do Family Finance.
 // v1.0 (16/11/2026). verify_jwt = false: autenticação feita aqui (login do app ou x-sync-token do agendamento).
+// v1.1 (24/11/2026): só aceita endereços dos serviços de push (Apple, Google, Mozilla, Microsoft) e chaves com o
+//   tamanho certo; um aparelho com problema não derruba o aviso dos outros; tempo limite de 15 s por envio;
+//   op=test não devolve mais os códigos HTTP brutos.
 //   op=key          → chave pública VAPID (gerada e guardada em app_settings na primeira vez)
 //   op=subscribe    → (login) grava o aparelho do membro
 //   op=unsubscribe  → (login) remove o aparelho
@@ -19,6 +22,21 @@ const te = new TextEncoder();
 const b64u = (b: Uint8Array) => btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const unb64u = (s: string) => { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; return Uint8Array.from(atob(s), c => c.charCodeAt(0)); };
 const concat = (...a: Uint8Array[]) => { const o = new Uint8Array(a.reduce((n, x) => n + x.length, 0)); let p = 0; for (const x of a) { o.set(x, p); p += x.length; } return o; };
+
+// Serviços de push aceitos (evita que a função faça requisições para endereços arbitrários).
+const PUSH_HOSTS = [/^fcm\.googleapis\.com$/, /^android\.googleapis\.com$/, /^updates\.push\.services\.mozilla\.com$/, /^([a-z0-9-]+\.)*push\.apple\.com$/, /^[a-z0-9-]+\.notify\.windows\.com$/];
+function pushEndpointOk(endpoint: unknown): boolean {
+  if (typeof endpoint !== "string" || endpoint.length > 1000) return false;
+  let u: URL; try { u = new URL(endpoint); } catch { return false; }
+  return u.protocol === "https:" && !u.port && !u.username && !u.password && PUSH_HOSTS.some((r) => r.test(u.hostname));
+}
+function keysOk(p256dh: unknown, auth: unknown): boolean {
+  try {
+    if (typeof p256dh !== "string" || typeof auth !== "string") return false;
+    const k = unb64u(p256dh), a = unb64u(auth);
+    return k.length === 65 && k[0] === 4 && a.length === 16;
+  } catch { return false; }
+}
 
 async function setting(key: string) { const { data } = await sb.from("app_settings").select("value").eq("key", key).maybeSingle(); return data?.value as string | undefined; }
 
@@ -69,14 +87,18 @@ export async function encrypt(payload: Uint8Array, p256dh: string, authSecret: s
 
 type Sub = { id: string; endpoint: string; p256dh: string; auth: string };
 async function send(sub: Sub, msg: { title: string; body: string; url: string; tag?: string }) {
-  const body = await encrypt(te.encode(JSON.stringify(msg)), sub.p256dh, sub.auth);
+  // nunca lança: um aparelho com problema não pode derrubar o envio para os outros
   let status = 0;
   try {
-    const r = await fetch(sub.endpoint, { method: "POST", headers: { Authorization: await vapidAuth(sub.endpoint), TTL: "86400", Urgency: "normal", "Content-Encoding": "aes128gcm", "Content-Type": "application/octet-stream" }, body });
-    status = r.status;
+    if (!pushEndpointOk(sub.endpoint)) status = -2;
+    else {
+      const body = await encrypt(te.encode(JSON.stringify(msg)), sub.p256dh, sub.auth);
+      const r = await fetch(sub.endpoint, { method: "POST", signal: AbortSignal.timeout(15_000), headers: { Authorization: await vapidAuth(sub.endpoint), TTL: "86400", Urgency: "normal", "Content-Encoding": "aes128gcm", "Content-Type": "application/octet-stream" }, body });
+      status = r.status;
+    }
   } catch { status = -1; }
   // 404/410: o aparelho cancelou a inscrição → desativa (não apaga, para o histórico)
-  await sb.from("push_subscriptions").update({ last_sent_at: new Date().toISOString(), last_status: status, ...(status === 404 || status === 410 ? { active: false } : {}) }).eq("id", sub.id);
+  await sb.from("push_subscriptions").update({ last_sent_at: new Date().toISOString(), last_status: status, ...(status === 404 || status === 410 || status === -2 ? { active: false } : {}) }).eq("id", sub.id);
   return status;
 }
 
@@ -115,7 +137,7 @@ Deno.serve(async (req) => {
     if (!m) return json({ error: "não autenticado" }, 401);
     if (op === "subscribe") {
       const s = body.subscription; const k = s?.keys || {};
-      if (!s?.endpoint || !/^https:\/\//.test(s.endpoint) || !k.p256dh || !k.auth) return json({ error: "inscrição inválida" }, 400);
+      if (!pushEndpointOk(s?.endpoint) || !keysOk(k.p256dh, k.auth)) return json({ error: "inscrição inválida" }, 400);
       const { error } = await sb.from("push_subscriptions").upsert({ member_id: m.id, endpoint: s.endpoint, p256dh: k.p256dh, auth: k.auth, user_agent: (req.headers.get("user-agent") || "").slice(0, 300), active: true, kinds: ["revisao"] }, { onConflict: "endpoint" });
       if (error) return json({ error: error.message }, 500);
       return json({ ok: true });
@@ -128,7 +150,7 @@ Deno.serve(async (req) => {
       const { data: subs } = await sb.from("push_subscriptions").select("id,endpoint,p256dh,auth").eq("member_id", m.id).eq("active", true);
       if (!subs?.length) return json({ error: "nenhum aparelho ativo" }, 404);
       const st = await Promise.all(subs.map(s => send(s as Sub, { title: "Family Finance", body: `Notificações ligadas, ${m.display_name}. É assim que o aviso vai chegar.`, url: APP_URL + "/#revisao", tag: "teste" })));
-      return json({ enviados: st.filter(s => s >= 200 && s < 300).length, status: st });
+      return json({ enviados: st.filter(s => s >= 200 && s < 300).length, falhas: st.filter(s => s < 200 || s >= 300).length });
     }
     return json({ error: "operação desconhecida" }, 400);
   } catch (e) {

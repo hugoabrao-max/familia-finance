@@ -1,5 +1,6 @@
 // Gera link de primeiro acesso / redefinição de senha para um membro da família.
 // Só o responsável (owner/admin) pode chamar. O link abre o app, que valida o token e pede a nova senha.
+// v2 (24/11/2026): admin não gera link para o dono nem para outro admin (evita tomar a conta de quem tem mais poder).
 import { createClient } from "npm:@supabase/supabase-js@2";
 const APP_URL = "https://familia-finance.up.railway.app";
 const cors = { "Access-Control-Allow-Origin": APP_URL, "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS" };
@@ -14,8 +15,9 @@ Deno.serve(async (req) => {
   const { data: caller } = await admin.from("household_members").select("id,role,household_id,display_name").eq("auth_user_id", u.user.id).maybeSingle();
   if (!caller || !["owner", "admin"].includes(caller.role)) return json({ error: "sem permissão" }, 403);
   let body: any = {}; try { body = await req.json(); } catch { /* */ }
-  const { data: m } = await admin.from("household_members").select("id,email,display_name,auth_user_id,household_id").eq("id", body.member_id).maybeSingle();
+  const { data: m } = await admin.from("household_members").select("id,email,display_name,auth_user_id,household_id,role").eq("id", body.member_id).maybeSingle();
   if (!m || m.household_id !== caller.household_id || !m.email) return json({ error: "membro não encontrado" }, 404);
+  if (caller.role !== "owner" && m.id !== caller.id && ["owner", "admin"].includes(m.role)) return json({ error: "sem permissão para este membro" }, 403);
   if (!m.auth_user_id) {
     const { error: ce } = await admin.auth.admin.createUser({ email: m.email, email_confirm: true });
     if (ce && !/already/i.test(ce.message)) return json({ error: "criar usuário: " + ce.message }, 500);
