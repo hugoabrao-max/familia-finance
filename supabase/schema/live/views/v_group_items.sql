@@ -1,7 +1,7 @@
 create or replace view public.v_group_items with (security_invoker = on) as
  WITH m AS (
-         SELECT ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
-            ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval))::date AS fim
+         SELECT ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
+            ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '1 mon'::interval))::date AS fim
         ), x AS (
          SELECT v.group_id,
             v.category_id,

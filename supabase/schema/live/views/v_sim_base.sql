@@ -1,6 +1,6 @@
 create or replace view public.v_sim_base with (security_invoker = on) as
  WITH meses AS (
-         SELECT (generate_series((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval), (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval), '1 mon'::interval))::date AS mes
+         SELECT (generate_series((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval), (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '1 mon'::interval), '1 mon'::interval))::date AS mes
         ), rec AS (
          SELECT percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((COALESCE(s.receitas, (0)::numeric))::double precision)) AS v,
             jsonb_agg(jsonb_build_object('mes', m.mes, 'receitas', COALESCE(s.receitas, (0)::numeric), 'despesas', (- COALESCE(s.despesas, (0)::numeric))) ORDER BY m.mes) AS hist
@@ -50,5 +50,5 @@ create or replace view public.v_sim_base with (security_invoker = on) as
            FROM fat) AS fatura_fechada_a_pagar,
     ( SELECT jsonb_agg(jsonb_build_object('nome', v_goals.name, 'alvo', v_goals.target_amount, 'progresso', v_goals.progresso, 'status', v_goals.status)) AS jsonb_agg
            FROM v_goals) AS metas,
-    (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date AS mes_base
+    (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date AS mes_base
    FROM v_net_worth n;

@@ -16,7 +16,7 @@ create or replace view public.v_card_teto with (security_invoker = on) as
           WHERE (v_fixed_month.channel = 'conta'::text)
           GROUP BY v_fixed_month.month
         ), m0 AS (
-         SELECT COALESCE(min(v_card_bills.competence_month), (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date) AS m
+         SELECT COALESCE(min(v_card_bills.competence_month), (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date) AS m
            FROM v_card_bills
           WHERE (v_card_bills.status = 'aberta'::text)
         ), meses AS (

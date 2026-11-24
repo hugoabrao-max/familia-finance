@@ -78,7 +78,7 @@ begin
   -- 5. Pendentes antigos (status PENDING há mais de 7 dias)
   insert into data_quality_issues (kind, severity, transaction_id, detail)
   select 'pending_stale', 'low', id, jsonb_build_object('since', event_date) from transactions
-  where status = 'PENDING' and event_date < current_date - 7
+  where status = 'PENDING' and event_date < (now() at time zone 'America/Cuiaba')::date - 7
   on conflict do nothing;
 
   return jsonb_build_object('transfers', n_transfer, 'card_payments', n_card, 'refunds', n_refund, 'duplicates', n_dup);

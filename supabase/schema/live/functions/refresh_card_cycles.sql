@@ -23,7 +23,7 @@ begin
     update card_bill_cycles e set superseded = true, updated_at = now()
       where e.account_id=r.id and e.source='estimado' and not e.superseded
       and exists (select 1 from card_bill_cycles x where x.account_id=r.id and x.source<>'estimado' and date_trunc('month',x.closing_date)=date_trunc('month',e.closing_date));
-    for est in select (date_trunc('month', current_date) + (k||' month')::interval)::date from generate_series(0,1) k loop
+    for est in select (date_trunc('month', (now() at time zone 'America/Cuiaba')::date) + (k||' month')::interval)::date from generate_series(0,1) k loop
       c := least(est + 28, (est + interval '1 month' - interval '1 day')::date);
       while extract(isodow from c) > 5 loop c := c - 1; end loop;
       insert into card_bill_cycles (account_id, closing_date, source)

@@ -1,7 +1,7 @@
 create or replace view public.v_meta_items with (security_invoker = on) as
  WITH per AS (
-         SELECT ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
-            (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date AS atual
+         SELECT ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
+            (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date AS atual
         ), fe AS MATERIALIZED (
          SELECT fixed_expenses.category_id,
             fixed_expenses.payee_key,

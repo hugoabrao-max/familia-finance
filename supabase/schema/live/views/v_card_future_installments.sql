@@ -19,11 +19,11 @@ create or replace view public.v_card_future_installments with (security_invoker 
     s.n AS parcela_atual,
     s.tt AS total_parcelas,
     s.valor,
-    ((date_trunc('month'::text, (COALESCE(s.ult_fechamento, CURRENT_DATE))::timestamp with time zone) + ((g.i || ' month'::text))::interval))::date AS competence_month,
+    ((date_trunc('month'::text, (COALESCE(s.ult_fechamento, ((now() AT TIME ZONE 'America/Cuiaba'::text))::date))::timestamp with time zone) + ((g.i || ' month'::text))::interval))::date AS competence_month,
     s.category_id,
     COALESCE(c.parent_id, c.id, 'outros'::text) AS group_id,
     (s.n + g.i) AS parcela_no_mes
    FROM (s
      LEFT JOIN categories c ON ((c.id = s.category_id))),
     generate_series(1, 36) g(i)
-  WHERE ((s.n < s.tt) AND (g.i <= (s.tt - s.n)) AND (((date_trunc('month'::text, (COALESCE(s.ult_fechamento, CURRENT_DATE))::timestamp with time zone) + ((g.i || ' month'::text))::interval))::date >= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date));
+  WHERE ((s.n < s.tt) AND (g.i <= (s.tt - s.n)) AND (((date_trunc('month'::text, (COALESCE(s.ult_fechamento, ((now() AT TIME ZONE 'America/Cuiaba'::text))::date))::timestamp with time zone) + ((g.i || ' month'::text))::interval))::date >= (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date));

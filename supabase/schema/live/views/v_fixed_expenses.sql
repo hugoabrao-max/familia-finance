@@ -1,17 +1,17 @@
 create or replace view public.v_fixed_expenses with (security_invoker = on) as
  WITH fm AS (
          SELECT v_fixed_month.fixed_expense_id,
-            max(v_fixed_month.pago) FILTER (WHERE (v_fixed_month.month = (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date)) AS pago_mes,
-            max(v_fixed_month.pago) FILTER (WHERE (v_fixed_month.month = ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval))::date)) AS pago_mes_anterior
+            max(v_fixed_month.pago) FILTER (WHERE (v_fixed_month.month = (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date)) AS pago_mes,
+            max(v_fixed_month.pago) FILTER (WHERE (v_fixed_month.month = ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '1 mon'::interval))::date)) AS pago_mes_anterior
            FROM v_fixed_month
-          WHERE ((v_fixed_month.month >= ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval))::date) AND (v_fixed_month.month <= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date))
+          WHERE ((v_fixed_month.month >= ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '1 mon'::interval))::date) AND (v_fixed_month.month <= (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date))
           GROUP BY v_fixed_month.fixed_expense_id
         ), vals AS (
          SELECT fixed_expense_values.fixed_expense_id,
-            ((array_agg(fixed_expense_values.amount ORDER BY fixed_expense_values.valid_from DESC) FILTER (WHERE (fixed_expense_values.valid_from <= date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))))[1])::numeric(14,2) AS valor_atual,
-            max(fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from <= date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))) AS valor_desde,
-            ((array_agg(fixed_expense_values.amount ORDER BY fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from > date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))))[1])::numeric(14,2) AS proximo_valor,
-            min(fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from > date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))) AS proximo_desde,
+            ((array_agg(fixed_expense_values.amount ORDER BY fixed_expense_values.valid_from DESC) FILTER (WHERE (fixed_expense_values.valid_from <= date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))))[1])::numeric(14,2) AS valor_atual,
+            max(fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from <= date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))) AS valor_desde,
+            ((array_agg(fixed_expense_values.amount ORDER BY fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from > date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))))[1])::numeric(14,2) AS proximo_valor,
+            min(fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from > date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))) AS proximo_desde,
             count(*) AS n_valores
            FROM fixed_expense_values
           GROUP BY fixed_expense_values.fixed_expense_id

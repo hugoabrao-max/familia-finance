@@ -17,7 +17,7 @@ create or replace view public.v_card_bills with (security_invoker = on) as
     paid_transaction_id,
         CASE
             WHEN (paid_transaction_id IS NOT NULL) THEN 'paga'::text
-            WHEN (closing_date < CURRENT_DATE) THEN 'fechada'::text
+            WHEN (closing_date < ((now() AT TIME ZONE 'America/Cuiaba'::text))::date) THEN 'fechada'::text
             ELSE 'aberta'::text
         END AS status
    FROM card_bill_cycles c

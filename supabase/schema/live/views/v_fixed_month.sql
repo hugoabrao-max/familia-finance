@@ -1,6 +1,6 @@
 create or replace view public.v_fixed_month with (security_invoker = on) as
  WITH meses AS (
-         SELECT (generate_series((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval), (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) + '1 year'::interval), '1 mon'::interval))::date AS mes
+         SELECT (generate_series((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval), (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) + '1 year'::interval), '1 mon'::interval))::date AS mes
         ), tx AS MATERIALIZED (
          SELECT t.month,
             t.category_id,
@@ -8,7 +8,7 @@ create or replace view public.v_fixed_month with (security_invoker = on) as
             norm_text(((COALESCE(t.counterpart_name, ''::text) || ' '::text) || t.description)) AS nt,
             (- t.amount) AS v
            FROM v_tx t
-          WHERE ((t.amount < (0)::numeric) AND (t.category_kind = 'despesa'::text) AND (t.month >= ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval))::date))
+          WHERE ((t.amount < (0)::numeric) AND (t.category_kind = 'despesa'::text) AND (t.month >= ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval))::date))
         ), base AS MATERIALIZED (
          SELECT m.mes,
             f.id,

@@ -36,5 +36,5 @@ create or replace view public.v_financing with (security_invoker = on) as
          LIMIT 1) AS proximo_vencimento,
     ( SELECT COALESCE(sum(i.valor), (0)::numeric) AS "coalesce"
            FROM financing_installments i
-          WHERE ((i.contract_id = c.id) AND (NOT i.pago) AND (i.due_date < ((date_trunc('year'::text, (CURRENT_DATE)::timestamp with time zone) + '2 years'::interval))::date) AND (i.due_date >= ((date_trunc('year'::text, (CURRENT_DATE)::timestamp with time zone) + '1 year'::interval))::date))) AS total_proximo_ano
+          WHERE ((i.contract_id = c.id) AND (NOT i.pago) AND (i.due_date < ((date_trunc('year'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) + '2 years'::interval))::date) AND (i.due_date >= ((date_trunc('year'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) + '1 year'::interval))::date))) AS total_proximo_ano
    FROM financing_contracts c;

@@ -1,6 +1,6 @@
 create or replace view public.v_budget_month with (security_invoker = on) as
  WITH m AS (
-         SELECT (generate_series(('2025-11-01'::date)::timestamp with time zone, (((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) + '1 year'::interval))::date)::timestamp with time zone, '1 mon'::interval))::date AS mes
+         SELECT (generate_series(('2025-11-01'::date)::timestamp with time zone, (((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) + '1 year'::interval))::date)::timestamp with time zone, '1 mon'::interval))::date AS mes
         ), b AS (
          SELECT DISTINCT ON (bm.mes, bu.group_id) bm.mes,
             bu.group_id,

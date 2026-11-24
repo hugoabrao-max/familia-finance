@@ -1080,7 +1080,7 @@ begin
   -- 5. Pendentes antigos (status PENDING há mais de 7 dias)
   insert into data_quality_issues (kind, severity, transaction_id, detail)
   select 'pending_stale', 'low', id, jsonb_build_object('since', event_date) from transactions
-  where status = 'PENDING' and event_date < current_date - 7
+  where status = 'PENDING' and event_date < (now() at time zone 'America/Cuiaba')::date - 7
   on conflict do nothing;
 
   return jsonb_build_object('transfers', n_transfer, 'card_payments', n_card, 'refunds', n_refund, 'duplicates', n_dup);
@@ -1112,7 +1112,7 @@ begin
     update card_bill_cycles e set superseded = true, updated_at = now()
       where e.account_id=r.id and e.source='estimado' and not e.superseded
       and exists (select 1 from card_bill_cycles x where x.account_id=r.id and x.source<>'estimado' and date_trunc('month',x.closing_date)=date_trunc('month',e.closing_date));
-    for est in select (date_trunc('month', current_date) + (k||' month')::interval)::date from generate_series(0,1) k loop
+    for est in select (date_trunc('month', (now() at time zone 'America/Cuiaba')::date) + (k||' month')::interval)::date from generate_series(0,1) k loop
       c := least(est + 28, (est + interval '1 month' - interval '1 day')::date);
       while extract(isodow from c) > 5 loop c := c - 1; end loop;
       insert into card_bill_cycles (account_id, closing_date, source)
@@ -1259,7 +1259,7 @@ create or replace view public.v_card_bills with (security_invoker = on) as
     paid_transaction_id,
         CASE
             WHEN (paid_transaction_id IS NOT NULL) THEN 'paga'::text
-            WHEN (closing_date < CURRENT_DATE) THEN 'fechada'::text
+            WHEN (closing_date < ((now() AT TIME ZONE 'America/Cuiaba'::text))::date) THEN 'fechada'::text
             ELSE 'aberta'::text
         END AS status
    FROM card_bill_cycles c
@@ -1286,14 +1286,14 @@ create or replace view public.v_card_future_installments with (security_invoker 
     s.n AS parcela_atual,
     s.tt AS total_parcelas,
     s.valor,
-    ((date_trunc('month'::text, (COALESCE(s.ult_fechamento, CURRENT_DATE))::timestamp with time zone) + ((g.i || ' month'::text))::interval))::date AS competence_month,
+    ((date_trunc('month'::text, (COALESCE(s.ult_fechamento, ((now() AT TIME ZONE 'America/Cuiaba'::text))::date))::timestamp with time zone) + ((g.i || ' month'::text))::interval))::date AS competence_month,
     s.category_id,
     COALESCE(c.parent_id, c.id, 'outros'::text) AS group_id,
     (s.n + g.i) AS parcela_no_mes
    FROM (s
      LEFT JOIN categories c ON ((c.id = s.category_id))),
     generate_series(1, 36) g(i)
-  WHERE ((s.n < s.tt) AND (g.i <= (s.tt - s.n)) AND (((date_trunc('month'::text, (COALESCE(s.ult_fechamento, CURRENT_DATE))::timestamp with time zone) + ((g.i || ' month'::text))::interval))::date >= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date));
+  WHERE ((s.n < s.tt) AND (g.i <= (s.tt - s.n)) AND (((date_trunc('month'::text, (COALESCE(s.ult_fechamento, ((now() AT TIME ZONE 'America/Cuiaba'::text))::date))::timestamp with time zone) + ((g.i || ' month'::text))::interval))::date >= (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date));
 
 create or replace view public.v_financing with (security_invoker = on) as
  SELECT id,
@@ -1333,7 +1333,7 @@ create or replace view public.v_financing with (security_invoker = on) as
          LIMIT 1) AS proximo_vencimento,
     ( SELECT COALESCE(sum(i.valor), (0)::numeric) AS "coalesce"
            FROM financing_installments i
-          WHERE ((i.contract_id = c.id) AND (NOT i.pago) AND (i.due_date < ((date_trunc('year'::text, (CURRENT_DATE)::timestamp with time zone) + '2 years'::interval))::date) AND (i.due_date >= ((date_trunc('year'::text, (CURRENT_DATE)::timestamp with time zone) + '1 year'::interval))::date))) AS total_proximo_ano
+          WHERE ((i.contract_id = c.id) AND (NOT i.pago) AND (i.due_date < ((date_trunc('year'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) + '2 years'::interval))::date) AND (i.due_date >= ((date_trunc('year'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) + '1 year'::interval))::date))) AS total_proximo_ano
    FROM financing_contracts c;
 
 create or replace view public.v_investments_latest with (security_invoker = on) as
@@ -1684,7 +1684,7 @@ create or replace view public.v_daily_flow with (security_invoker = on) as
 
 create or replace view public.v_fixed_month with (security_invoker = on) as
  WITH meses AS (
-         SELECT (generate_series((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval), (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) + '1 year'::interval), '1 mon'::interval))::date AS mes
+         SELECT (generate_series((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval), (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) + '1 year'::interval), '1 mon'::interval))::date AS mes
         ), tx AS MATERIALIZED (
          SELECT t.month,
             t.category_id,
@@ -1692,7 +1692,7 @@ create or replace view public.v_fixed_month with (security_invoker = on) as
             norm_text(((COALESCE(t.counterpart_name, ''::text) || ' '::text) || t.description)) AS nt,
             (- t.amount) AS v
            FROM v_tx t
-          WHERE ((t.amount < (0)::numeric) AND (t.category_kind = 'despesa'::text) AND (t.month >= ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval))::date))
+          WHERE ((t.amount < (0)::numeric) AND (t.category_kind = 'despesa'::text) AND (t.month >= ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval))::date))
         ), base AS MATERIALIZED (
          SELECT m.mes,
             f.id,
@@ -1760,8 +1760,8 @@ create or replace view public.v_goals with (security_invoker = on) as
 
 create or replace view public.v_group_channel with (security_invoker = on) as
  WITH m AS (
-         SELECT ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
-            ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval))::date AS fim
+         SELECT ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
+            ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '1 mon'::interval))::date AS fim
         )
  SELECT v.group_id,
     max(v.group_name) AS group_name,
@@ -1776,8 +1776,8 @@ create or replace view public.v_group_channel with (security_invoker = on) as
 
 create or replace view public.v_group_items with (security_invoker = on) as
  WITH m AS (
-         SELECT ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
-            ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval))::date AS fim
+         SELECT ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
+            ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '1 mon'::interval))::date AS fim
         ), x AS (
          SELECT v.group_id,
             v.category_id,
@@ -1812,8 +1812,8 @@ create or replace view public.v_group_items with (security_invoker = on) as
 
 create or replace view public.v_meta_base with (security_invoker = on) as
  WITH per AS (
-         SELECT ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
-            ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval))::date AS fim
+         SELECT ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
+            ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '1 mon'::interval))::date AS fim
         ), meses AS (
          SELECT (generate_series((per.ini)::timestamp with time zone, (per.fim)::timestamp with time zone, '1 mon'::interval))::date AS mes
            FROM per
@@ -1874,8 +1874,8 @@ create or replace view public.v_meta_base with (security_invoker = on) as
 
 create or replace view public.v_meta_items with (security_invoker = on) as
  WITH per AS (
-         SELECT ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
-            (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date AS atual
+         SELECT ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval))::date AS ini,
+            (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date AS atual
         ), fe AS MATERIALIZED (
          SELECT fixed_expenses.category_id,
             fixed_expenses.payee_key,
@@ -1972,7 +1972,7 @@ create or replace view public.v_month_commitments with (security_invoker = on) a
             COALESCE(fm.devido, (0)::numeric) AS devido,
             fm.pago
            FROM v_fixed_month fm
-          WHERE (fm.month >= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date)
+          WHERE (fm.month >= (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date)
         )
  SELECT COALESCE(p.mes, k.mes) AS month,
     COALESCE(p.group_id, k.group_id) AS group_id,
@@ -2007,7 +2007,7 @@ create or replace view public.v_month_summary with (security_invoker = on) as
 
 create or replace view public.v_sim_base with (security_invoker = on) as
  WITH meses AS (
-         SELECT (generate_series((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '6 mons'::interval), (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval), '1 mon'::interval))::date AS mes
+         SELECT (generate_series((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval), (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '1 mon'::interval), '1 mon'::interval))::date AS mes
         ), rec AS (
          SELECT percentile_cont((0.5)::double precision) WITHIN GROUP (ORDER BY ((COALESCE(s.receitas, (0)::numeric))::double precision)) AS v,
             jsonb_agg(jsonb_build_object('mes', m.mes, 'receitas', COALESCE(s.receitas, (0)::numeric), 'despesas', (- COALESCE(s.despesas, (0)::numeric))) ORDER BY m.mes) AS hist
@@ -2057,7 +2057,7 @@ create or replace view public.v_sim_base with (security_invoker = on) as
            FROM fat) AS fatura_fechada_a_pagar,
     ( SELECT jsonb_agg(jsonb_build_object('nome', v_goals.name, 'alvo', v_goals.target_amount, 'progresso', v_goals.progresso, 'status', v_goals.status)) AS jsonb_agg
            FROM v_goals) AS metas,
-    (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date AS mes_base
+    (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date AS mes_base
    FROM v_net_worth n;
 
 create or replace view public.v_alerts with (security_invoker = on) as
@@ -2085,7 +2085,7 @@ UNION ALL
 
 create or replace view public.v_budget_month with (security_invoker = on) as
  WITH m AS (
-         SELECT (generate_series(('2025-11-01'::date)::timestamp with time zone, (((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) + '1 year'::interval))::date)::timestamp with time zone, '1 mon'::interval))::date AS mes
+         SELECT (generate_series(('2025-11-01'::date)::timestamp with time zone, (((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) + '1 year'::interval))::date)::timestamp with time zone, '1 mon'::interval))::date AS mes
         ), b AS (
          SELECT DISTINCT ON (bm.mes, bu.group_id) bm.mes,
             bu.group_id,
@@ -2136,7 +2136,7 @@ create or replace view public.v_card_teto with (security_invoker = on) as
           WHERE (v_fixed_month.channel = 'conta'::text)
           GROUP BY v_fixed_month.month
         ), m0 AS (
-         SELECT COALESCE(min(v_card_bills.competence_month), (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date) AS m
+         SELECT COALESCE(min(v_card_bills.competence_month), (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date) AS m
            FROM v_card_bills
           WHERE (v_card_bills.status = 'aberta'::text)
         ), meses AS (
@@ -2216,17 +2216,17 @@ create or replace view public.v_card_teto with (security_invoker = on) as
 create or replace view public.v_fixed_expenses with (security_invoker = on) as
  WITH fm AS (
          SELECT v_fixed_month.fixed_expense_id,
-            max(v_fixed_month.pago) FILTER (WHERE (v_fixed_month.month = (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date)) AS pago_mes,
-            max(v_fixed_month.pago) FILTER (WHERE (v_fixed_month.month = ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval))::date)) AS pago_mes_anterior
+            max(v_fixed_month.pago) FILTER (WHERE (v_fixed_month.month = (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date)) AS pago_mes,
+            max(v_fixed_month.pago) FILTER (WHERE (v_fixed_month.month = ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '1 mon'::interval))::date)) AS pago_mes_anterior
            FROM v_fixed_month
-          WHERE ((v_fixed_month.month >= ((date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone) - '1 mon'::interval))::date) AND (v_fixed_month.month <= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date))
+          WHERE ((v_fixed_month.month >= ((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '1 mon'::interval))::date) AND (v_fixed_month.month <= (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date))
           GROUP BY v_fixed_month.fixed_expense_id
         ), vals AS (
          SELECT fixed_expense_values.fixed_expense_id,
-            ((array_agg(fixed_expense_values.amount ORDER BY fixed_expense_values.valid_from DESC) FILTER (WHERE (fixed_expense_values.valid_from <= date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))))[1])::numeric(14,2) AS valor_atual,
-            max(fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from <= date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))) AS valor_desde,
-            ((array_agg(fixed_expense_values.amount ORDER BY fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from > date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))))[1])::numeric(14,2) AS proximo_valor,
-            min(fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from > date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))) AS proximo_desde,
+            ((array_agg(fixed_expense_values.amount ORDER BY fixed_expense_values.valid_from DESC) FILTER (WHERE (fixed_expense_values.valid_from <= date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))))[1])::numeric(14,2) AS valor_atual,
+            max(fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from <= date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))) AS valor_desde,
+            ((array_agg(fixed_expense_values.amount ORDER BY fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from > date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))))[1])::numeric(14,2) AS proximo_valor,
+            min(fixed_expense_values.valid_from) FILTER (WHERE (fixed_expense_values.valid_from > date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))) AS proximo_desde,
             count(*) AS n_valores
            FROM fixed_expense_values
           GROUP BY fixed_expense_values.fixed_expense_id

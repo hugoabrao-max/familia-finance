@@ -36,7 +36,7 @@ create or replace view public.v_month_commitments with (security_invoker = on) a
             COALESCE(fm.devido, (0)::numeric) AS devido,
             fm.pago
            FROM v_fixed_month fm
-          WHERE (fm.month >= (date_trunc('month'::text, (CURRENT_DATE)::timestamp with time zone))::date)
+          WHERE (fm.month >= (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone))::date)
         )
  SELECT COALESCE(p.mes, k.mes) AS month,
     COALESCE(p.group_id, k.group_id) AS group_id,
