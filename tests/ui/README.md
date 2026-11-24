@@ -38,3 +38,5 @@ Sobe o esquema do kit (`install/01_schema.sql`, gerado de `supabase/schema/live`
 
 ## Cadeia pós-sincronização (`tests/db/calculo.sh`)
 Monta contas e lançamentos de teste e roda `post_sync()` duas vezes: duas compras iguais no mesmo dia não viram duplicidade; a mesma compra vinda de outra origem vira; transferência entre contas próprias fica casada e continua transferência; lançamento de mês fechado não é reclassificado; toda mudança de categoria em lote fica em `audit_logs`; resultado do mês não fica vazio. Rodar com `python3 install/build.py && bash tests/db/calculo.sh`.
+
+`manutencao.test.js` cobre a v0.25.0: Meta com uma consulta falhando mostra o aviso e não guarda números incompletos (ao tentar de novo, busca tudo outra vez — a v0.24.2 caía aqui); o total de Lançamentos com 2.500 lançamentos soma tudo (páginas buscadas em paralelo).

@@ -11,7 +11,7 @@ The two services below are Railway Functions (the old `app` Function was deleted
 
 ## app
 Bun.serve SPA. Routes: `/` (HTML), `/manifest.json`, `/sw.js`, `/icon.png`, `/health` (`{"ok":true,"version":APP_VERSION}`); anything else redirects to `/`.
-Version constant `APP_VERSION` (0.14.0 at the time of download). The Supabase URL and publishable key are embedded in the source (intentionally public).
+Version constant `APP_VERSION` (0.25.0 on 24/11/2026). The Supabase URL and publishable key are embedded in the source (intentionally public). Runs as the non-root `bun` user (`app/Dockerfile`).
 Variables: none.
 
 ## backup

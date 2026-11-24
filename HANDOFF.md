@@ -1,6 +1,6 @@
 # Família Finance AI — Relatório de handoff para o Claude Code
 
-**Data do levantamento:** 12/11/2026 · **Responsável:** Hugo Veras Abrão (owner) · **Versão em produção:** frontend v0.15.0 / banco migração 0029
+**Data do levantamento:** 12/11/2026 · **Responsável:** Hugo Veras Abrão (owner) · **Versão em produção:** frontend v0.25.0 / banco migração 0042 (atualizado em 24/11/2026; o estado vivo está em `docs/PROJECT_STATE.md`)
 **Fonte deste relatório:** estado lido ao vivo no Supabase `familia-finance` e no Railway `familia-finance` em 12/11/2026, mais os 12 documentos de continuidade da tabela `project_docs` e o histórico do projeto.
 
 > Convenção de status usada em todo o documento (exigência do Hugo): **implementado** (código existe) → **testado** (teste automatizado/simulado) → **validado** (conferido com documentos reais) → **publicado** (em produção). Nada é "resolvido" só porque compila.
@@ -131,6 +131,8 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 | 05/11 (v0.1–v0.2) | 0001 core ingestion · 0002 categorias + 587 regras v18 · 0003 motor de classificação · 0004 auth/RLS/views · 0005 security_invoker · 0006 conciliação · 0007 fix regra duplicada · 0008 backup export · 0009 restore test · 0010 restore compare fix |
 | 06/11 (v0.3–v0.9) | 0006 backup IDs reautorização · 0007 moeda estrangeira · 0008 referência fatura PDF · 0009 ciclos/competência do cartão · 0011 alertas + fechamento · 0012 bloqueio de funções internas · 0013 Itaú/Mercado Livre/histórico · 0014 planejamento (patrimônio, orçamento, metas) · 0015 base de simulação · 0016 meta de sobra/flex/canal · 0017 piso por itens · 0018 reclassificações do Hugo · 0019 comprometido do mês · 0020 despesas fixas · 0021 performance |
 | 07/11 (v0.10–v0.14) | 0022 meta mensal · 0023 contratos de financiamento · 0024 bens/patrimônio líquido · 0025 itens da meta |
+| 12–16/11 (v0.15–v0.24) | 0026 competência do cartão · 0027–0029 ajustes · 0030 regra por padrão · 0031–0032 teto da fatura · 0033–0034 notificações no celular |
+| 24/11 (v0.24.1–v0.25) | auditoria completa: 0035 leitura só para membros · 0036–0037 backup sem segredos e avisos · 0038 fuso de Cuiabá · 0039 ajustes de cálculo · 0040 classificação em lote auditada · 0041 conta fixa por padrão mais específico · 0042 vínculo só com e-mail confirmado |
 
 ⚠️ **A numeração repete** (0006–0009 existem duas vezes, com versões de timestamp diferentes). No repositório os arquivos são nomeados pelo `version` (timestamp) para não colidir.
 
@@ -163,7 +165,7 @@ Motivo dos horários (07/11): o item MeuPluggy atualiza sozinho 1×/dia ≈ 01:0
 
 ---
 
-## 6. Frontend (`app/src/app.ts`, v0.14.0)
+## 6. Frontend (`app/src/app.ts`; versão atual no `/health` e em `docs/PROJECT_STATE.md`)
 
 **Estrutura:** um único arquivo Bun com `Bun.serve` que entrega: `/` (SPA em template string `HTML`), `/manifest.json`, `/icon.png` (PNG 512 embutido), `/sw.js` (service worker mínimo), `/health` (`{ok, version}`). Qualquer outra rota → 302 para `/`. Headers: CSP restritiva, HSTS, nosniff, no-referrer.
 

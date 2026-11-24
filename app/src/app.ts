@@ -4,7 +4,7 @@
 // Instalação: SUPABASE_URL e SUPABASE_ANON_KEY vêm do ambiente (Railway → Variables); o padrão é a instalação da família Abrão.
 const SUPABASE_URL = (Bun.env.SUPABASE_URL || "https://hrsinekxrfiphlhpoewp.supabase.co").replace(/\/+$/, "");
 const ANON_KEY = Bun.env.SUPABASE_ANON_KEY || "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
-const APP_VERSION = "0.24.2";
+const APP_VERSION = "0.25.0";
 
 const MANIFEST = JSON.stringify({
   name: "Family Finance", short_name: "Family Finance", start_url: "/", scope: "/",
@@ -122,7 +122,7 @@ input,select{border-radius:10px;border-color:var(--line)}
 <script type="module">
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/+esm";
 let RT=0;const FAILS={};
-const tfetch=async(u,o)=>{const t=RT;const rest=String((u&&u.url)||u).indexOf('/rest/v1/')>=0;try{const r=await fetch(u,o);if(rest&&!r.ok)FAILS[t]=(FAILS[t]||0)+1;return r}catch(e){if(rest)FAILS[t]=(FAILS[t]||0)+1;throw e}};
+const tfetch=async(u,o)=>{const t=RT;const rest=String((u&&u.url)||u).indexOf('/rest/v1/')>=0;const grava=rest&&o&&o.method&&o.method!=='GET'&&o.method!=='HEAD';try{const r=await fetch(u,o);if(rest&&!r.ok)FAILS[t]=(FAILS[t]||0)+1;if(grava&&r.ok){MT=null;SIM.base=null}return r}catch(e){if(rest)FAILS[t]=(FAILS[t]||0)+1;throw e}};
 const sb = createClient("${SUPABASE_URL}", "${ANON_KEY}",{global:{fetch:tfetch}});
 const $ = (s)=>document.querySelector(s);
 const brl = (v)=> (v==null?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}));
@@ -340,7 +340,7 @@ function lxQuery(f,month,cols,opt){let sel=sb.from('v_tx').select(cols,opt).orde
   if(f.holder)sel=sel.eq('holder_name',f.holder);if(f.group)sel=sel.eq('group_id',f.group);if(f.tree)sel=sel.in('category_id',arvore(f.tree));if(f.cat)sel=sel.eq('category_id',f.cat);if(f.account)sel=sel.eq('account_id',f.account);
   if(f.search){const t=f.search.replace(/[,()%*:"\\\\]/g,' ').replace(/\\s+/g,' ').trim();if(t)sel=sel.or('description.ilike.*'+t+'*,counterpart_name.ilike.*'+t+'*')}
   if(f.pending)sel=sel.eq('review_status','pending');return sel}
-async function lxTotals(f,month){const t={ent:0,sai:0,n:0};for(let from=0;from<20000;from+=1000){const {data,error}=await lxQuery(f,month,'amount').range(from,from+999);if(error)throw error;(data||[]).forEach(r=>{const v=Number(r.amount);if(v>0)t.ent+=v;else t.sai+=v;t.n++});if(!data||data.length<1000)break}return t}
+async function lxTotals(f,month){const t={ent:0,sai:0,n:0};const soma=(data)=>(data||[]).forEach(r=>{const v=Number(r.amount);if(v>0)t.ent+=v;else t.sai+=v;t.n++});const pag=async(from)=>{const {data,error}=await lxQuery(f,month,'amount').range(from,from+999);if(error)throw error;soma(data);return (data||[]).length};let fim=(await pag(0))<1000;for(let from=1000;!fim&&from<20000;from+=4000){const ns=await Promise.all([0,1,2,3].map(j=>from+j*1000<20000?pag(from+j*1000):Promise.resolve(0)));fim=ns.some(n=>n<1000)}return t}
 async function lxFetch(L,n){const [pg,tt]=await Promise.all([lxQuery(L.f,L.month,'*',{count:'exact'}).range(0,n-1),lxTotals(L.f,L.month)]);if(pg.error)throw pg.error;const rows=pg.data||[];return {rows,total:pg.count==null?rows.length:pg.count,tt}}
 const diaNome=(d)=>{const h=hojeCba();if(d===h)return 'Hoje · '+fmtD(d);const y=new Date(Date.UTC(+h.slice(0,4),+h.slice(5,7)-1,+h.slice(8,10)-1)).toISOString().slice(0,10);if(d===y)return 'Ontem · '+fmtD(d);const w=new Date(d+'T12:00:00Z').toLocaleDateString('pt-BR',{weekday:'short',timeZone:'UTC'}).replace('.','');return w.charAt(0).toUpperCase()+w.slice(1)+' · '+fmtD(d)+(d.slice(0,4)!==h.slice(0,4)?'/'+d.slice(0,4):'')};
 function lxTot(){const t=(window._lx||{}).tt||{ent:0,sai:0,n:0},liq=t.ent+t.sai;
@@ -513,7 +513,7 @@ window.saveBudget=async(i,modo)=>{const b=window._bud[i],m=window._budM||S.month
   const {error}=await sb.from('budgets').upsert(rows,{onConflict:'group_id,month'});if(error){toast('Não salvou: '+error.message);return;}
   closeSheet();toast(b.group_name+': '+brl0(v)+' de '+mesAbv(m)+' em diante');route()};
 window.editCom=(i)=>{const c=window._com[i];openSheet('<b>'+esc(c.name)+'</b><p class="small muted">'+esc(c.notes||'')+'</p><label class="small">Parcela mensal</label><input id="cm" inputmode="decimal" value="'+(c.monthly_amount??'')+'"><label class="small">Termina em</label><input id="ce" type="date" value="'+(c.end_date||'')+'">'+(c.kind==='financiamento'?'<label class="small">Saldo devedor hoje</label><input id="co" inputmode="decimal" value="'+(c.outstanding_balance??'')+'">':'')+'<div class="row" style="margin-top:10px"><button class="ghost" onclick="closeSheet()">Cancelar</button><button onclick="saveCom('+i+')">Salvar</button></div>')};
-window.saveCom=async(i)=>{const c=window._com[i];const upd={monthly_amount:num($('#cm').value),end_date:$('#ce').value||null,source:'hugo',updated_at:new Date().toISOString()};if($('#co')){upd.outstanding_balance=num($('#co').value);upd.outstanding_at=hojeCba();}const {error}=await sb.from('commitments').update(upd).eq('id',c.id);if(error){toast('Não salvou: '+error.message);return;}if(upd.monthly_amount!=null&&Number(upd.monthly_amount)!==Number(c.monthly_amount)){const {data:fx}=await sb.from('fixed_expenses').select('id').eq('commitment_id',c.id);for(const x of (fx||[]))await sb.from('fixed_expense_values').upsert({fixed_expense_id:x.id,valid_from:mesAtual()+'-01',amount:upd.monthly_amount,note:'alterado em Contas fixas',created_by:S.member?.id},{onConflict:'fixed_expense_id,valid_from'});}closeSheet();toast('Financiamento atualizado');route();};
+window.saveCom=async(i)=>{const c=window._com[i];const upd={monthly_amount:num($('#cm').value),end_date:$('#ce').value||null,source:'hugo',updated_at:new Date().toISOString()};if($('#co')){upd.outstanding_balance=num($('#co').value);upd.outstanding_at=hojeCba();}const {error}=await sb.from('commitments').update(upd).eq('id',c.id);if(error){toast('Não salvou: '+error.message);return;}if(upd.monthly_amount!=null&&Number(upd.monthly_amount)!==Number(c.monthly_amount)){const {data:fx}=await sb.from('fixed_expenses').select('id').eq('commitment_id',c.id);for(const x of (fx||[])){const r=await sb.from('fixed_expense_values').upsert({fixed_expense_id:x.id,valid_from:mesAtual()+'-01',amount:upd.monthly_amount,note:'alterado em Contas fixas',created_by:S.member?.id},{onConflict:'fixed_expense_id,valid_from'});if(r.error){toast('Financiamento salvo, mas o valor nas contas fixas não: '+r.error.message);route();return}}}closeSheet();toast('Financiamento atualizado');route();};
 window.editGoal=(i)=>{const g=i>=0?window._goals[i]:{name:'',target_amount:'',target_date:'',monthly_contribution:'',progress_source:'manual',current_amount:0,status:'ativa'};
   openSheet('<b>'+(i>=0?'Reserva':'Nova reserva')+'</b><label class="small">Nome</label><input id="gn" value="'+esc(g.name)+'"><label class="small">Valor alvo</label><input id="gt" inputmode="decimal" value="'+(g.target_amount??'')+'"><label class="small">Prazo</label><input id="gd" type="date" value="'+(g.target_date||'')+'"><label class="small">Quanto guardar por mês</label><input id="ga" inputmode="decimal" value="'+(g.monthly_contribution??'')+'">'+
    '<label class="small">Progresso medido por</label><select id="gp"><option value="poupanca_investimentos"'+(g.progress_source==='poupanca_investimentos'?' selected':'')+'>Poupança + investimentos</option><option value="investimentos"'+(g.progress_source==='investimentos'?' selected':'')+'>Investimentos</option><option value="manual"'+(g.progress_source==='manual'?' selected':'')+'>Valor informado</option></select><label class="small">Valor já acumulado (se informado)</label><input id="gc" inputmode="decimal" value="'+(g.current_amount??0)+'">'+
@@ -557,9 +557,10 @@ function projetar(base,ajustes,rend){
     out.push({mes,rec,desp:desp+extra,aporte,res:rec-desp-extra,liq,inv,pat:liq+inv+bens-divNova-(Number(base.cartao_utilizado)-Number(base.fatura_fechada_a_pagar||0))-Number(base.financiamentos_saldo||0)+divQuit});
   }
   return out}
-async function renderSimular(){
+async function renderSimular(){const _rt=RT;
   if(!SIM.base){const {data,error}=await sb.from('v_sim_base').select('*').maybeSingle();if(error){toast(error.message);return;}SIM.base=data;}
   const {data:salvos}=await sb.from('sim_scenarios').select('*').order('created_at',{ascending:false});window._salvos=salvos||[];
+  if(_rt!==RT)return;
   const b=SIM.base;const base=projetar(b,[],SIM.rend);const cen=projetar(b,SIM.ajustes,SIM.rend);
   const soma=(a,f)=>a.reduce((s,x)=>s+f(x),0);
   const dRes=soma(cen,x=>x.res)-soma(base,x=>x.res);
@@ -626,11 +627,12 @@ window.SIM=SIM;window.renderSimular=renderSimular;window.toast=toast;
 // ---------- Meta de sobra mensal (receita − fixas − parcelas = margem; corte não linear só no variável) ----------
 const CLASSES={fixa:{n:'Fixa',max:0},essencial:{n:'Essencial',max:10},ajustavel:{n:'Ajustável',max:30},discricionaria:{n:'Dá para cortar',max:50}};
 let MT=null;
-async function renderMeta(){
+async function renderMeta(){const _rt=RT;
   if(!MT){
     const m0=mesAtual();
     const [{data:sim},{data:base},{data:flex},{data:ps},{data:gl},{data:fx},{data:mc}]=await Promise.all([sb.from('v_sim_base').select('receita_mensal').maybeSingle(),sb.from('v_meta_base').select('*'),sb.from('category_flex').select('*'),sb.from('plan_settings').select('*').eq('key','sobra_meta').maybeSingle(),sb.from('goals').select('*').neq('status','cancelada'),sb.from('v_fixed_month').select('month,group_id,devido').gte('month',m0+'-01'),sb.from('v_month_commitments').select('month,group_id,parcelas_cartao').gte('month',m0+'-01')]);
     const {data:its}=await sb.from('v_meta_items').select('*').order('total_6m',{ascending:false});
+    if(_rt!==RT||FAILS[_rt])return;
     if(!sim){toast('Sem base de cálculo');return;}
     const meses=[];for(let k=0;k<13;k++)meses.push(addM(m0,k));
     const G={};const g=(id)=>G[id]||(G[id]={id,nome:(S.cats.find(c=>c.id===id)||{}).name||id,var:0,fix:{},parc:{},hist:{}});
@@ -641,6 +643,7 @@ async function renderMeta(){
     MT={rec:Number(sim.receita_mensal),meta:Number(ps?.value??10000),rows:Object.values(G).filter(r=>r.var>0||meses.some(k=>(r.fix[k]||0)+(r.parc[k]||0)>0)),goals:gl||[],meses,mes:meses.includes(S.month)?S.month:m0,man:{},todos:false,items:its||[],open:{},all:{}};
     MT.rows.sort((a,b)=>(b.var+(b.fix[m0]||0))-(a.var+(a.fix[m0]||0)));
   }
+  if(_rt!==RT)return;
   desenharMeta();
 }
 function calcMes(k){const R=MT.rows;const F=R.reduce((s,r)=>s+(r.fix[k]||0),0),P=R.reduce((s,r)=>s+(r.parc[k]||0),0);
@@ -770,7 +773,7 @@ async function renderRevisao(){const _rt=RT;
 }
 window.lotClass=async(i)=>{const g=(window._grp||[])[i];if(!g)return;const cat=$('#gc'+i).value;if(!cat){toast('Escolha a categoria do grupo');$('#gc'+i).focus();return}
   const rule=$('#gr'+i).checked,b=$('#gb'+i);if(b.disabled)return;b.disabled=true;b.textContent='Classificando…';
-  let ok=0,err=null;for(let k=0;k<g.rows.length;k++){const {error}=await sb.rpc('set_transaction_category',{p_tx:g.rows[k].id,p_category:cat,p_create_rule:rule&&k===0});if(error){err=error;break}ok++}
+  let ok=0,err=null;const um=async(k)=>{const {error}=await sb.rpc('set_transaction_category',{p_tx:g.rows[k].id,p_category:cat,p_create_rule:rule&&k===0});if(error){err=err||error}else ok++};await um(0);for(let k=1;k<g.rows.length&&!err;k+=5){await Promise.all(g.rows.slice(k,k+5).map((_,j)=>um(k+j)))}
   const cn=(S.cats.find(c=>c.id===cat)||{}).name||'';
   if(err)toast(ok+' de '+g.rows.length+' classificados. Erro: '+err.message);else toast((ok===1?'1 lançamento':ok+' lançamentos')+' em '+cn+(rule?' · regra criada':''));route()};
 
@@ -854,7 +857,7 @@ boot();
 </script>
 </body></html>`;
 
-const CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' " + SUPABASE_URL + " " + SUPABASE_URL.replace(/^https:/, "wss:") + "; img-src 'self' data:; manifest-src 'self'; frame-ancestors 'none'";
+const CSP = "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/@supabase/; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src 'self' " + SUPABASE_URL + " " + SUPABASE_URL.replace(/^https:/, "wss:") + "; img-src 'self' data:; manifest-src 'self'; frame-ancestors 'none'";
 // Exportação estática (instalador): EXPORT_STATIC=<pasta> grava o app como site estático e sai.
 if (Bun.env.EXPORT_STATIC) {
   const d = Bun.env.EXPORT_STATIC.replace(/\/+$/, "");
