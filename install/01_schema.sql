@@ -753,6 +753,8 @@ CREATE OR REPLACE FUNCTION public.classify_transactions(p_only_unclassified bool
 AS $function$
 declare v_classified int := 0; v_pending int := 0;
 begin
+  -- v2 (24/11/2026): não mexe em lançamento já casado como transferência/estorno (reconcile_all), nem em mês fechado;
+  -- só grava o que mudou e registra cada mudança de categoria em audit_logs (reclassificação em lote reversível).
   with cand as (
     select t.id, norm_text(t.description) as nd, norm_text(coalesce(t.counterpart_name,'')) as nc,
            norm_text(t.description || ' ' || coalesce(t.counterpart_name,'')) as nall, t.operation_type,
@@ -760,6 +762,9 @@ begin
     from transactions t left join raw_transactions r on r.id = t.raw_transaction_id
     where (not p_only_unclassified or t.category_id is null or t.category_source in ('regra_sistema','regra_estabelecimento','pluggy','padrao_operacao','pendente','mcc'))
       and coalesce(t.category_source,'') <> 'ajuste_usuario'
+      and t.reconciliation is distinct from 'transfer_matched' and t.reconciliation is distinct from 'refund'
+      and not exists (select 1 from monthly_closings mc where mc.status = 'fechado'
+                      and mc.month = date_trunc('month', coalesce(t.competence_month, t.event_date))::date)
   ),
   matched as (
     select c.id, r.id as rule_id, r.category_id, r.confidence, r.rule_type, r.priority,
@@ -784,20 +789,42 @@ begin
     from cand c left join mcc_category_map m on m.mcc = c.mcc
     where c.id not in (select id from best)
   ),
+  novo as (
+    select c.id,
+      coalesce(b.category_id, f.category_id, f.mcc_category) as category_id,
+      case when b.id is not null then (case when b.rule_type = 'payee_name' then 'pessoa' when b.rule_type = 'description_regex' then 'regra_sistema' else 'regra_estabelecimento' end)
+           when f.category_id is not null then 'padrao_operacao'
+           when f.mcc_category is not null then 'mcc' else 'pendente' end as category_source,
+      case when b.id is not null then b.confidence when f.category_id is not null then 0.800 when f.mcc_category is not null then 0.700 else null end as category_confidence,
+      b.rule_id,
+      case when b.id is not null or f.category_id is not null or f.mcc_category is not null then 'auto' else 'pending' end as review_status
+    from cand c left join best b on b.id = c.id left join fallback f on f.id = c.id
+  ),
+  antes as (
+    select t.id, t.category_id, t.category_source, t.category_confidence, t.rule_id, t.review_status
+    from transactions t join novo n on n.id = t.id
+    where (t.category_id, t.category_source, t.category_confidence, t.rule_id, t.review_status)
+          is distinct from (n.category_id, n.category_source, n.category_confidence, n.rule_id, n.review_status)
+  ),
   upd as (
     update transactions t set
-      category_id = coalesce(b.category_id, f.category_id, f.mcc_category),
-      category_source = case when b.id is not null then (case when b.rule_type = 'payee_name' then 'pessoa' when b.rule_type = 'description_regex' then 'regra_sistema' else 'regra_estabelecimento' end)
-                             when f.category_id is not null then 'padrao_operacao'
-                             when f.mcc_category is not null then 'mcc' else 'pendente' end,
-      category_confidence = case when b.id is not null then b.confidence when f.category_id is not null then 0.800 when f.mcc_category is not null then 0.700 else null end,
-      rule_id = b.rule_id,
-      review_status = case when b.id is not null or f.category_id is not null or f.mcc_category is not null then 'auto' else 'pending' end
-    from cand c left join best b on b.id = c.id left join fallback f on f.id = c.id
-    where t.id = c.id
-    returning t.category_id
+      category_id = n.category_id, category_source = n.category_source, category_confidence = n.category_confidence,
+      rule_id = n.rule_id, review_status = n.review_status
+    from novo n join antes a on a.id = n.id
+    where t.id = n.id
+    returning t.id, t.category_id
+  ),
+  aud as (
+    insert into audit_logs (table_name, row_id, action, actor_label, before, after)
+    select 'transactions', a.id::text, 'reclassificacao_automatica', 'classify_transactions',
+           jsonb_build_object('category_id', a.category_id, 'category_source', a.category_source, 'review_status', a.review_status),
+           jsonb_build_object('category_id', n.category_id, 'category_source', n.category_source, 'review_status', n.review_status)
+    from antes a join novo n on n.id = a.id
+    where a.category_id is distinct from n.category_id
+    returning 1
   )
-  select count(*) filter (where category_id is not null), count(*) filter (where category_id is null) into v_classified, v_pending from upd;
+  select (select count(*) from upd where category_id is not null), (select count(*) from novo where category_id is null)
+    into v_classified, v_pending;
   return query select v_classified, v_pending;
 end $function$
 ;
@@ -871,14 +898,19 @@ begin
     from transactions a join transactions b
       on b.account_id = a.account_id and b.event_date = a.event_date and b.amount = a.amount
      and norm_text(b.description) = norm_text(a.description) and b.id <> a.id
-     and (a.source <> b.source or a.provider_code is distinct from b.provider_code)
+     and a.source <> b.source   -- v2 (24/11/2026): só entre origens diferentes; duas compras iguais no mesmo dia (cada uma com seu id na Pluggy) são legítimas
      and (a.created_at, a.id) < (b.created_at, b.id)
   ), ins as (
     insert into data_quality_issues (kind, severity, transaction_id, detail)
     select 'duplicate_suspect', 'high', id, jsonb_build_object('rule','same_account_date_amount_desc') from dup
     on conflict do nothing returning 1
   ) select count(*) into n from ins;
-  update transactions t set reconciliation = 'duplicate_suspect' from data_quality_issues q where q.transaction_id = t.id and q.kind = 'duplicate_suspect' and q.status = 'open' and t.reconciliation is distinct from 'duplicate_suspect';
+  with marc as (
+    update transactions t set reconciliation = 'duplicate_suspect' from data_quality_issues q where q.transaction_id = t.id and q.kind = 'duplicate_suspect' and q.status = 'open' and t.reconciliation is distinct from 'duplicate_suspect'
+    returning t.id
+  )
+  insert into audit_logs (table_name, row_id, action, actor_label, after)
+  select 'transactions', id::text, 'suspeita_duplicidade', 'detect_duplicates', jsonb_build_object('reconciliation', 'duplicate_suspect', 'efeito', 'oculto dos totais até confirmação') from marc;
   return n;
 end $function$
 ;
@@ -1023,9 +1055,18 @@ begin
     insert into transaction_links (kind, tx_a, tx_b, confidence, method)
     select 'transfer', out_id, in_id, 0.95, 'amount_opposite_2d' from pairs where rn_a = 1 and rn_b = 1
     on conflict do nothing returning tx_a, tx_b
+  ), antes as (
+    select t.id, t.category_id, t.category_source from transactions t join ins on t.id in (ins.tx_a, ins.tx_b)
+    where coalesce(t.category_source,'') <> 'ajuste_usuario'
   ), upd as (
     update transactions t set category_id = 'transferencia_entre_contas', category_source = coalesce(nullif(t.category_source,'pendente'), 'regra_sistema'), reconciliation = 'transfer_matched', review_status = 'auto'
-    from ins where t.id in (ins.tx_a, ins.tx_b) and coalesce(t.category_source,'') <> 'ajuste_usuario' returning 1
+    from antes a where t.id = a.id returning 1
+  ), aud as (
+    insert into audit_logs (table_name, row_id, action, actor_label, before, after)
+    select 'transactions', a.id::text, 'conciliacao_transferencia', 'reconcile_all',
+           jsonb_build_object('category_id', a.category_id, 'category_source', a.category_source),
+           jsonb_build_object('category_id', 'transferencia_entre_contas', 'reconciliation', 'transfer_matched')
+    from antes a where a.category_id is distinct from 'transferencia_entre_contas' returning 1
   ) select count(*) into n_transfer from ins;
 
   -- 2. Pagamento de fatura: débito automático/pagamento na CC ↔ fatura do cartão (valor igual ±1, até 5 dias do vencimento)
@@ -1058,9 +1099,18 @@ begin
     insert into transaction_links (kind, tx_a, tx_b, confidence, method)
     select 'refund', debit_id, credit_id, 0.90, 'same_merchant_amount_60d' from cand where rn = 1
     on conflict do nothing returning tx_a, tx_b
+  ), antes as (
+    select t.id, t.category_id, t.category_source, d.category_id as nova from ins join transactions t on t.id = ins.tx_b join transactions d on d.id = ins.tx_a
+    where coalesce(t.category_source,'') <> 'ajuste_usuario'
   ), upd as (
-    update transactions t set reconciliation = 'refund', category_id = d.category_id, category_source = 'regra_sistema'
-    from ins join transactions d on d.id = ins.tx_a where t.id = ins.tx_b and coalesce(t.category_source,'') <> 'ajuste_usuario' returning 1
+    update transactions t set reconciliation = 'refund', category_id = a.nova, category_source = 'regra_sistema'
+    from antes a where t.id = a.id returning 1
+  ), aud as (
+    insert into audit_logs (table_name, row_id, action, actor_label, before, after)
+    select 'transactions', a.id::text, 'conciliacao_estorno', 'reconcile_all',
+           jsonb_build_object('category_id', a.category_id, 'category_source', a.category_source),
+           jsonb_build_object('category_id', a.nova, 'reconciliation', 'refund')
+    from antes a where a.category_id is distinct from a.nova returning 1
   ) select count(*) into n_refund from ins;
 
   -- 4. Duplicidades suspeitas: mesma conta, data, valor e descrição, origens diferentes (nunca apaga; só sinaliza)
@@ -1069,7 +1119,7 @@ begin
     from transactions a join transactions b
       on b.account_id = a.account_id and b.event_date = a.event_date and b.amount = a.amount
      and norm_text(b.description) = norm_text(a.description) and b.id <> a.id
-     and (a.source <> b.source or a.provider_code is distinct from b.provider_code)
+     and a.source <> b.source   -- v2 (24/11/2026): só entre origens diferentes (ex.: Pluggy × PDF); duas compras iguais no mesmo dia são legítimas
      and a.created_at < b.created_at
   ), ins as (
     insert into data_quality_issues (kind, severity, transaction_id, detail)

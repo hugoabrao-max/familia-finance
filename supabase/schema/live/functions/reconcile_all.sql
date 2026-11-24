@@ -21,9 +21,18 @@ begin
     insert into transaction_links (kind, tx_a, tx_b, confidence, method)
     select 'transfer', out_id, in_id, 0.95, 'amount_opposite_2d' from pairs where rn_a = 1 and rn_b = 1
     on conflict do nothing returning tx_a, tx_b
+  ), antes as (
+    select t.id, t.category_id, t.category_source from transactions t join ins on t.id in (ins.tx_a, ins.tx_b)
+    where coalesce(t.category_source,'') <> 'ajuste_usuario'
   ), upd as (
     update transactions t set category_id = 'transferencia_entre_contas', category_source = coalesce(nullif(t.category_source,'pendente'), 'regra_sistema'), reconciliation = 'transfer_matched', review_status = 'auto'
-    from ins where t.id in (ins.tx_a, ins.tx_b) and coalesce(t.category_source,'') <> 'ajuste_usuario' returning 1
+    from antes a where t.id = a.id returning 1
+  ), aud as (
+    insert into audit_logs (table_name, row_id, action, actor_label, before, after)
+    select 'transactions', a.id::text, 'conciliacao_transferencia', 'reconcile_all',
+           jsonb_build_object('category_id', a.category_id, 'category_source', a.category_source),
+           jsonb_build_object('category_id', 'transferencia_entre_contas', 'reconciliation', 'transfer_matched')
+    from antes a where a.category_id is distinct from 'transferencia_entre_contas' returning 1
   ) select count(*) into n_transfer from ins;
 
   -- 2. Pagamento de fatura: débito automático/pagamento na CC ↔ fatura do cartão (valor igual ±1, até 5 dias do vencimento)
@@ -56,9 +65,18 @@ begin
     insert into transaction_links (kind, tx_a, tx_b, confidence, method)
     select 'refund', debit_id, credit_id, 0.90, 'same_merchant_amount_60d' from cand where rn = 1
     on conflict do nothing returning tx_a, tx_b
+  ), antes as (
+    select t.id, t.category_id, t.category_source, d.category_id as nova from ins join transactions t on t.id = ins.tx_b join transactions d on d.id = ins.tx_a
+    where coalesce(t.category_source,'') <> 'ajuste_usuario'
   ), upd as (
-    update transactions t set reconciliation = 'refund', category_id = d.category_id, category_source = 'regra_sistema'
-    from ins join transactions d on d.id = ins.tx_a where t.id = ins.tx_b and coalesce(t.category_source,'') <> 'ajuste_usuario' returning 1
+    update transactions t set reconciliation = 'refund', category_id = a.nova, category_source = 'regra_sistema'
+    from antes a where t.id = a.id returning 1
+  ), aud as (
+    insert into audit_logs (table_name, row_id, action, actor_label, before, after)
+    select 'transactions', a.id::text, 'conciliacao_estorno', 'reconcile_all',
+           jsonb_build_object('category_id', a.category_id, 'category_source', a.category_source),
+           jsonb_build_object('category_id', a.nova, 'reconciliation', 'refund')
+    from antes a where a.category_id is distinct from a.nova returning 1
   ) select count(*) into n_refund from ins;
 
   -- 4. Duplicidades suspeitas: mesma conta, data, valor e descrição, origens diferentes (nunca apaga; só sinaliza)
@@ -67,7 +85,7 @@ begin
     from transactions a join transactions b
       on b.account_id = a.account_id and b.event_date = a.event_date and b.amount = a.amount
      and norm_text(b.description) = norm_text(a.description) and b.id <> a.id
-     and (a.source <> b.source or a.provider_code is distinct from b.provider_code)
+     and a.source <> b.source   -- v2 (24/11/2026): só entre origens diferentes (ex.: Pluggy × PDF); duas compras iguais no mesmo dia são legítimas
      and a.created_at < b.created_at
   ), ins as (
     insert into data_quality_issues (kind, severity, transaction_id, detail)
