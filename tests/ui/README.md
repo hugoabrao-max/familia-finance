@@ -35,3 +35,6 @@ Desde 24/11/2026 todos os scripts terminam com código 1 quando alguma verifica�
 
 ## Banco (`tests/db/rls.sh`)
 Sobe o esquema do kit (`install/01_schema.sql`, gerado de `supabase/schema/live` por `install/build.py`) num Postgres 16 local com dados iniciais e confere, em todas as tabelas e views: quem não é da família e o anônimo não leem nada (exceto 3 views que só devolvem zeros), o membro lê; avisos de backup só para membros e aparecem quando o backup atrasa; o backup não leva segredos; toda tabela tem RLS. Rodar depois de cada migração: `python3 install/build.py && bash tests/db/rls.sh`.
+
+## Cadeia pós-sincronização (`tests/db/calculo.sh`)
+Monta contas e lançamentos de teste e roda `post_sync()` duas vezes: duas compras iguais no mesmo dia não viram duplicidade; a mesma compra vinda de outra origem vira; transferência entre contas próprias fica casada e continua transferência; lançamento de mês fechado não é reclassificado; toda mudança de categoria em lote fica em `audit_logs`; resultado do mês não fica vazio. Rodar com `python3 install/build.py && bash tests/db/calculo.sh`.
