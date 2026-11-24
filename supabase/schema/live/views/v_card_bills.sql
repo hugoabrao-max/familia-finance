@@ -11,13 +11,13 @@ create or replace view public.v_card_bills with (security_invoker = on) as
     ( SELECT count(*) AS count
            FROM (transactions t
              LEFT JOIN categories k ON ((k.id = t.category_id)))
-          WHERE ((t.account_id = c.account_id) AND (t.bill_closing_date = c.closing_date) AND (NOT t.is_deleted_at_source) AND (k.kind IS DISTINCT FROM 'transferencia'::text))) AS n_lancamentos,
+          WHERE ((t.account_id = c.account_id) AND (t.bill_closing_date = c.closing_date) AND (NOT t.is_deleted_at_source) AND (t.reconciliation IS DISTINCT FROM 'duplicate_suspect'::text) AND (k.kind IS DISTINCT FROM 'transferencia'::text))) AS n_lancamentos,
     pdf_total,
     paid_amount,
     paid_transaction_id,
         CASE
             WHEN (paid_transaction_id IS NOT NULL) THEN 'paga'::text
-            WHEN (closing_date < ((now() AT TIME ZONE 'America/Cuiaba'::text))::date) THEN 'fechada'::text
+            WHEN (COALESCE(cutoff_date, closing_date) < ((now() AT TIME ZONE 'America/Cuiaba'::text))::date) THEN 'fechada'::text
             ELSE 'aberta'::text
         END AS status
    FROM card_bill_cycles c

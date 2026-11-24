@@ -1253,13 +1253,13 @@ create or replace view public.v_card_bills with (security_invoker = on) as
     ( SELECT count(*) AS count
            FROM (transactions t
              LEFT JOIN categories k ON ((k.id = t.category_id)))
-          WHERE ((t.account_id = c.account_id) AND (t.bill_closing_date = c.closing_date) AND (NOT t.is_deleted_at_source) AND (k.kind IS DISTINCT FROM 'transferencia'::text))) AS n_lancamentos,
+          WHERE ((t.account_id = c.account_id) AND (t.bill_closing_date = c.closing_date) AND (NOT t.is_deleted_at_source) AND (t.reconciliation IS DISTINCT FROM 'duplicate_suspect'::text) AND (k.kind IS DISTINCT FROM 'transferencia'::text))) AS n_lancamentos,
     pdf_total,
     paid_amount,
     paid_transaction_id,
         CASE
             WHEN (paid_transaction_id IS NOT NULL) THEN 'paga'::text
-            WHEN (closing_date < ((now() AT TIME ZONE 'America/Cuiaba'::text))::date) THEN 'fechada'::text
+            WHEN (COALESCE(cutoff_date, closing_date) < ((now() AT TIME ZONE 'America/Cuiaba'::text))::date) THEN 'fechada'::text
             ELSE 'aberta'::text
         END AS status
    FROM card_bill_cycles c
@@ -1279,7 +1279,7 @@ create or replace view public.v_card_future_installments with (security_invoker 
            FROM (transactions t
              JOIN accounts a ON (((a.id = t.account_id) AND (a.type = 'CREDIT'::text))))
           WHERE ((t.installment_total > 1) AND (NOT t.is_deleted_at_source))
-          GROUP BY t.account_id, (norm_text(t.description)), t.installment_total
+          GROUP BY t.account_id, (norm_text(t.description)), t.installment_total, ((date_trunc('month'::text, (COALESCE(t.bill_closing_date, t.event_date))::timestamp with time zone) - (((t.installment_number - 1) || ' month'::text))::interval))
         )
  SELECT s.description,
     s.holder_name,
@@ -1686,7 +1686,8 @@ create or replace view public.v_fixed_month with (security_invoker = on) as
  WITH meses AS (
          SELECT (generate_series((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval), (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) + '1 year'::interval), '1 mon'::interval))::date AS mes
         ), tx AS MATERIALIZED (
-         SELECT t.month,
+         SELECT t.id AS tid,
+            t.month,
             t.category_id,
             payee_key_of(t.counterpart_name, t.description) AS pk,
             norm_text(((COALESCE(t.counterpart_name, ''::text) || ' '::text) || t.description)) AS nt,
@@ -1704,12 +1705,21 @@ create or replace view public.v_fixed_month with (security_invoker = on) as
            FROM (meses m
              JOIN fixed_expenses f ON ((f.is_active AND (m.mes >= date_trunc('month'::text, (f.start_month)::timestamp with time zone)) AND ((f.end_month IS NULL) OR (m.mes <= date_trunc('month'::text, (f.end_month)::timestamp with time zone))))))
         ), pagos AS (
-         SELECT b_1.mes,
-            b_1.id,
-            sum(t.v) AS pago
-           FROM (base b_1
-             JOIN tx t ON (((t.month = b_1.mes) AND (((b_1.payee_key IS NOT NULL) AND (t.pk = b_1.payee_key)) OR ((b_1.match_pattern IS NOT NULL) AND (t.nt ~~ (('%'::text || b_1.match_pattern) || '%'::text))) OR ((b_1.payee_key IS NULL) AND (b_1.match_pattern IS NULL) AND (t.category_id = b_1.category_id))))))
-          GROUP BY b_1.mes, b_1.id
+         SELECT x.mes,
+            x.id,
+            sum(x.v) AS pago
+           FROM ( SELECT DISTINCT ON (b_1.mes, t.tid) b_1.mes,
+                    b_1.id,
+                    t.v
+                   FROM (base b_1
+                     JOIN tx t ON (((t.month = b_1.mes) AND (((b_1.payee_key IS NOT NULL) AND (t.pk = b_1.payee_key)) OR ((b_1.match_pattern IS NOT NULL) AND (t.nt ~~ (('%'::text || b_1.match_pattern) || '%'::text))) OR ((b_1.payee_key IS NULL) AND (b_1.match_pattern IS NULL) AND (t.category_id = b_1.category_id))))))
+                  ORDER BY b_1.mes, t.tid,
+                        CASE
+                            WHEN ((b_1.payee_key IS NOT NULL) AND (t.pk = b_1.payee_key)) THEN 1
+                            WHEN ((b_1.match_pattern IS NOT NULL) AND (t.nt ~~ (('%'::text || b_1.match_pattern) || '%'::text))) THEN 2
+                            ELSE 3
+                        END, b_1.id) x
+          GROUP BY x.mes, x.id
         )
  SELECT b.mes AS month,
     b.id AS fixed_expense_id,
@@ -1998,7 +2008,7 @@ create or replace view public.v_month_summary with (security_invoker = on) as
     sum(amount) FILTER (WHERE (category_kind = 'receita'::text)) AS receitas,
     sum(amount) FILTER (WHERE ((category_kind = 'despesa'::text) OR (category_kind IS NULL))) AS despesas,
     sum(amount) FILTER (WHERE (category_kind = 'investimento'::text)) AS investimentos,
-    (sum(amount) FILTER (WHERE (category_kind = 'receita'::text)) + sum(amount) FILTER (WHERE ((category_kind = 'despesa'::text) OR (category_kind IS NULL)))) AS resultado,
+    (COALESCE(sum(amount) FILTER (WHERE (category_kind = 'receita'::text)), (0)::numeric) + COALESCE(sum(amount) FILTER (WHERE ((category_kind = 'despesa'::text) OR (category_kind IS NULL))), (0)::numeric)) AS resultado,
     count(*) FILTER (WHERE (review_status = 'pending'::text)) AS pendentes,
     sum(abs(amount)) FILTER (WHERE (review_status = 'pending'::text)) AS valor_pendente
    FROM v_tx

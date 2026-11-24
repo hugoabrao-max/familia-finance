@@ -2,7 +2,8 @@ create or replace view public.v_fixed_month with (security_invoker = on) as
  WITH meses AS (
          SELECT (generate_series((date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) - '6 mons'::interval), (date_trunc('month'::text, (((now() AT TIME ZONE 'America/Cuiaba'::text))::date)::timestamp with time zone) + '1 year'::interval), '1 mon'::interval))::date AS mes
         ), tx AS MATERIALIZED (
-         SELECT t.month,
+         SELECT t.id AS tid,
+            t.month,
             t.category_id,
             payee_key_of(t.counterpart_name, t.description) AS pk,
             norm_text(((COALESCE(t.counterpart_name, ''::text) || ' '::text) || t.description)) AS nt,
@@ -20,12 +21,21 @@ create or replace view public.v_fixed_month with (security_invoker = on) as
            FROM (meses m
              JOIN fixed_expenses f ON ((f.is_active AND (m.mes >= date_trunc('month'::text, (f.start_month)::timestamp with time zone)) AND ((f.end_month IS NULL) OR (m.mes <= date_trunc('month'::text, (f.end_month)::timestamp with time zone))))))
         ), pagos AS (
-         SELECT b_1.mes,
-            b_1.id,
-            sum(t.v) AS pago
-           FROM (base b_1
-             JOIN tx t ON (((t.month = b_1.mes) AND (((b_1.payee_key IS NOT NULL) AND (t.pk = b_1.payee_key)) OR ((b_1.match_pattern IS NOT NULL) AND (t.nt ~~ (('%'::text || b_1.match_pattern) || '%'::text))) OR ((b_1.payee_key IS NULL) AND (b_1.match_pattern IS NULL) AND (t.category_id = b_1.category_id))))))
-          GROUP BY b_1.mes, b_1.id
+         SELECT x.mes,
+            x.id,
+            sum(x.v) AS pago
+           FROM ( SELECT DISTINCT ON (b_1.mes, t.tid) b_1.mes,
+                    b_1.id,
+                    t.v
+                   FROM (base b_1
+                     JOIN tx t ON (((t.month = b_1.mes) AND (((b_1.payee_key IS NOT NULL) AND (t.pk = b_1.payee_key)) OR ((b_1.match_pattern IS NOT NULL) AND (t.nt ~~ (('%'::text || b_1.match_pattern) || '%'::text))) OR ((b_1.payee_key IS NULL) AND (b_1.match_pattern IS NULL) AND (t.category_id = b_1.category_id))))))
+                  ORDER BY b_1.mes, t.tid,
+                        CASE
+                            WHEN ((b_1.payee_key IS NOT NULL) AND (t.pk = b_1.payee_key)) THEN 1
+                            WHEN ((b_1.match_pattern IS NOT NULL) AND (t.nt ~~ (('%'::text || b_1.match_pattern) || '%'::text))) THEN 2
+                            ELSE 3
+                        END, b_1.id) x
+          GROUP BY x.mes, x.id
         )
  SELECT b.mes AS month,
     b.id AS fixed_expense_id,
