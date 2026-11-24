@@ -7,7 +7,7 @@ Definições lidas do banco de produção. Quando divergirem das migrações, **
 |---|---|---|
 | `views/*.sql` | 22 views, todas `security_invoker = on` | md5 de `create or replace view ... with (security_invoker = on) as\n` + `pg_get_viewdef` + `\n` |
 | `functions/*.sql` | 25 funções em 22 arquivos (4 overloads de `fmt_br` juntos) | md5 de `pg_get_functiondef(oid) \|\| ';\n'` |
-| `policies.sql` | 42 `enable row level security` + 53 políticas | md5 conferido |
+| `policies.sql` | 43 `enable row level security` + 55 políticas | md5 conferido |
 | `triggers.sql` | 5 triggers `set_updated_at` em tabelas `public` | md5 conferido |
 | `cron_jobs.sql` | `pluggy-sync-diario`, `pos-sync` (token lido de `app_settings`, nada literal) | md5 conferido |
 | `grants.sql` | ACL de EXECUTE das funções | md5 conferido |

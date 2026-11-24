@@ -4,7 +4,7 @@
 // Instalação: SUPABASE_URL e SUPABASE_ANON_KEY vêm do ambiente (Railway → Variables); o padrão é a instalação da família Abrão.
 const SUPABASE_URL = (Bun.env.SUPABASE_URL || "https://hrsinekxrfiphlhpoewp.supabase.co").replace(/\/+$/, "");
 const ANON_KEY = Bun.env.SUPABASE_ANON_KEY || "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
-const APP_VERSION = "0.24.0";
+const APP_VERSION = "0.24.1";
 
 const MANIFEST = JSON.stringify({
   name: "Family Finance", short_name: "Family Finance", start_url: "/", scope: "/",
@@ -127,7 +127,7 @@ const sb = createClient("${SUPABASE_URL}", "${ANON_KEY}",{global:{fetch:tfetch}}
 const $ = (s)=>document.querySelector(s);
 const brl = (v)=> (v==null?'—':Number(v).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}));
 const brl0 = (v)=> (v==null?'—':Math.round(Number(v)).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}));
-const esc = (s)=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const esc = (s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let TT;const toast=(m,act,fn)=>{const t=$('#toast');t.innerHTML='';const s=document.createElement('span');s.textContent=m;t.appendChild(s);if(act){const b=document.createElement('button');b.type='button';b.textContent=act;b.onclick=()=>{t.style.display='none';fn()};t.appendChild(b)}t.style.display='flex';clearTimeout(TT);TT=setTimeout(()=>t.style.display='none',act?6000:2400)};
 const ym=(d)=>d.toISOString().slice(0,7);
 const mesAbv=(m)=>['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'][+m.slice(5,7)-1]+'/'+m.slice(2,4);
@@ -136,6 +136,7 @@ const fmtD=(d)=>{const [y,m,dd]=d.split('-');return dd+'/'+m};
 const TZ='America/Cuiaba';
 const hojeCba=()=>new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const mesAtual=()=>hojeCba().slice(0,7);
+const okM=(x)=>/^[0-9]{4}-(0[1-9]|1[0-2])$/.test(x||'')?x:null;
 let S={user:null,member:null,cats:[],accounts:[],month:mesAtual(),view:'inicio'};
 let SHF=null;const sheetOn=()=>$('#sheet').classList.contains('on');
 window.closeSheet=(silent)=>{if(!sheetOn())return;$('#sheet').classList.remove('on');if(silent!==true&&history.state&&history.state.sheet)history.back();if(SHF&&SHF.focus){try{SHF.focus({preventScroll:true})}catch(e){}}SHF=null};
@@ -199,7 +200,7 @@ window.route=route;
 function replaceHash(h){const h0='#'+h;history.replaceState(history.state,'',h0);if(NAV.length)NAV[NAV.length-1]=h0;LASTH=h0}
 async function refreshPending(){const {count}=await sb.from('transactions').select('id',{count:'exact',head:true}).eq('review_status','pending');$('#pend').textContent=count?' '+count:'';}
 function monthPicker(fut){const opts=[];const c0=mesAtual(),cy=+c0.slice(0,4),cm=+c0.slice(5,7)-1;if(!fut&&S.month>c0)opts.push('<option value="'+S.month+'" selected>'+mesNome(S.month)+'</option>');for(let i=(fut?-12:0);i<14;i++){const m=ym(new Date(Date.UTC(cy,cm-i,1)));opts.push('<option value="'+m+'"'+(m===S.month?' selected':'')+'>'+mesNome(m)+'</option>')}return '<select id="mp" aria-label="Mês">'+opts.join('')+'</select>';}
-function bindMonth(cb){$('#mp').onchange=(e)=>{S.month=e.target.value;cb();}}
+function bindMonth(cb){$('#mp').onchange=(e)=>{S.month=okM(e.target.value)||S.month;cb();}}
 const rerender=()=>{scrollTo(0,0);route()};
 
 // ---------- Início ----------
@@ -274,7 +275,7 @@ function voltar(rot,fallback){return '<a class="crumb" href="'+fallback+'" oncli
 
 // ---------- Detalhe de categoria (drill-down de Início) ----------
 async function renderCategoria(q){const _rt=RT;
-  const id=q.get('id')||'', m=q.get('month')||S.month, m0=addM(m,-6);
+  const id=q.get('id')||'', m=okM(q.get('month'))||S.month, m0=addM(m,-6);
   const g=S.cats.find(c=>c.id===id)||{name:id};
   const [{data:hist},{data:bud},{data:tx}]=await Promise.all([
     sb.from('v_category_month').select('month,category_id,category_name,n,total').eq('group_id',id).gte('month',m0+'-01').lte('month',m+'-01'),
@@ -361,7 +362,7 @@ async function lxSearch(){const L=window._lx,i=$('#fs');if(!L||!i)return;const v
   let r;try{r=await lxFetch(L,PAGE)}catch(e){if(seq===L.seq){document.body.classList.remove('loading');toast('Busca falhou: '+(e.message||e))}return}
   if(seq!==L.seq||window._lx!==L)return;document.body.classList.remove('loading');window._rows=r.rows;L.total=r.total;L.tt=r.tt;L.n=r.rows.length;lxPaint()}
 async function renderLancamentos(q){const _rt=RT;
-  const month=q.get('month')||S.month; S.month=month;
+  const month=okM(q.get('month'))||S.month; S.month=month;
   const f={all:q.get('all')==='1',bill:q.get('bill')||'',holder:q.get('holder')||'',group:q.get('group')||'',tree:q.get('tree')||'',cat:q.get('cat')||'',account:q.get('account')||'',search:q.get('search')||'',pending:q.get('pending')==='1'};
   const L={f,month,key:JSON.stringify([f,month])};const old=window._lx;
   const n=old&&old.key===L.key?Math.min(1000,Math.max(PAGE,old.n||0)):PAGE;
@@ -373,7 +374,7 @@ async function renderLancamentos(q){const _rt=RT;
    '<div class="filters"><select id="fg"><option value="">Todas as categorias</option>'+groups.map(g=>'<option value="'+g.id+'"'+(g.id===(f.tree||(f.group?raizDe(f.group):''))?' selected':'')+'>'+esc(g.name)+'</option>').join('')+'</select>'+
    '<select id="fa"><option value="">Todas as contas</option>'+S.accounts.map(a=>'<option value="'+a.id+'"'+(a.id===f.account?' selected':'')+'>'+esc(a.subtype==='CREDIT_CARD'?'Cartão '+a.number:a.subtype==='SAVINGS_ACCOUNT'?'Poupança':'Conta corrente')+'</option>').join('')+'</select>'+
    '<input class="full" id="fs" type="search" aria-label="Buscar lançamentos" autocomplete="off" placeholder="buscar por descrição ou estabelecimento" value="'+esc(f.search)+'"></div>'+
-   (f.all?'<p><span class="pill">Últimos 6 meses</span> <a class="small" href="#lancamentos">limpar</a></p>':'')+(f.bill?'<p><span class="pill">Fatura com fechamento em '+fmtD(f.bill)+'/'+f.bill.slice(0,4)+(f.holder?' · '+esc(f.holder):'')+'</span> <a class="small" href="#lancamentos">limpar</a></p>':'')+
+   (f.all?'<p><span class="pill">Últimos 6 meses</span> <a class="small" href="#lancamentos">limpar</a></p>':'')+(f.bill?'<p><span class="pill">Fatura com fechamento em '+esc(fmtD(f.bill))+'/'+f.bill.slice(0,4)+(f.holder?' · '+esc(f.holder):'')+'</span> <a class="small" href="#lancamentos">limpar</a></p>':'')+
    (f.group&&!f.tree?'<p><span class="pill">'+esc((S.cats.find(c=>c.id===f.group)||{}).name||f.group)+'</span> <a class="small" href="#lancamentos?month='+month+'">limpar</a></p>':'')+(f.cat?'<p><span class="pill">'+esc((S.cats.find(c=>c.id===f.cat)||{}).name||f.cat)+'</span> <a class="small" href="#lancamentos?month='+month+'">limpar</a></p>':'')+(f.pending?'<p><span class="pill warn">Só pendentes</span> <a class="small" href="#lancamentos?month='+month+'">limpar</a></p>':'')+
    '<div id="lxtot">'+lxTot()+'</div><div id="lxlist">'+lxList()+'</div></div>';
   const go=()=>{const p=new URLSearchParams({month:S.month});if($('#fg').value)p.set('tree',$('#fg').value);if($('#fa').value)p.set('account',$('#fa').value);if($('#fs').value.trim())p.set('search',$('#fs').value.trim());location.hash='lancamentos?'+p};
@@ -431,7 +432,7 @@ async function renderCartao(q){const _rt=RT;
   const B=bills||[];const cur=B.filter(b=>b.status!=='paga').sort((a,b)=>a.closing_date<b.closing_date?-1:1);
   const byH={};(hold||[]).forEach(r=>{const k=r.bill_closing_date+'|'+(r.holder_name||'?');byH[k]=(byH[k]||0)-Number(r.amount)});
   const HN=[...new Set((hold||[]).map(r=>r.holder_name).filter(Boolean))].sort();
-  const holders=(c)=>HN.map(h=>byH[c+'|'+h]?'<a class="pill" style="text-decoration:none;margin-right:4px" href="#lancamentos?bill='+c+'&holder='+h+'">'+h+' '+brl0(byH[c+'|'+h])+'</a>':'').join('');
+  const holders=(c)=>HN.map(h=>byH[c+'|'+h]?'<a class="pill" style="text-decoration:none;margin-right:4px" href="#lancamentos?bill='+encodeURIComponent(c)+'&holder='+encodeURIComponent(h)+'">'+esc(h)+' '+brl0(byH[c+'|'+h])+'</a>':'').join('');
   const st={aberta:'<span class="pill">aberta</span>',fechada:'<span class="pill warn">fechada · a pagar</span>',paga:'<span class="pill">paga</span>'};
   const src={pdf:'fechamento confirmado pelo PDF',pluggy_parcelas:'fechamento identificado pelas parcelas',estimado:'fechamento estimado'};
   const big=(b)=>'<div class="hero" style="margin-bottom:10px"><div class="row"><div class="small muted">Fatura · fecha '+fmtD(b.closing_date)+' · vence '+fmtD(b.due_date)+'</div>'+st[b.status]+'</div><div class="big num">'+brl(b.total_lancamentos)+'</div><div class="small muted">'+b.n_lancamentos+' lançamentos · '+src[b.source]+'</div><div style="margin-top:8px">'+holders(b.closing_date)+'</div><p style="margin:10px 0 0"><a href="#lancamentos?bill='+b.closing_date+'">Ver lançamentos ›</a></p></div>';
@@ -478,7 +479,7 @@ async function renderPlano(){const _rt=RT;
   bindMonth(rerender);
 }
 async function renderOrcamento(q){const _rt=RT;
-  if(q.get('month'))S.month=q.get('month');const m=S.month;
+  if(okM(q.get('month')))S.month=q.get('month');const m=S.month;
   const O=await orcDados(m);const {B,MC,futuro,totP,totC,tO,tG,isCur,ritmo}=O;
   const fm={};O.fut.forEach(r=>{fm[r.competence_month]=(fm[r.competence_month]||0)+Number(r.valor)});const fk=Object.keys(fm).sort().slice(0,6);
   window._bud=B;window._budM=m;
@@ -811,11 +812,11 @@ async function renderOperacao(q){const _rt=RT;
    '<p class="small muted">Dados do banco atualizados '+haQuanto(st.provider_updated_at)+' ('+dataHora(st.provider_updated_at)+')<br>Última sincronização sem erros: '+haQuanto(st.last_ok_sync)+'<br>Autorização do app vale até '+(st.consent_expires_at?new Date(st.consent_expires_at).toLocaleDateString('pt-BR',{timeZone:TZ}):'—')+(st.consent_warning?' <span class="pill warn">renovar</span>':'')+'<br>Erros nos últimos 7 dias: '+(st.errors_7d??0)+'</p></div>'+
    '<h2 id="dup">Possíveis duplicidades</h2>'+(dups.length?'<div class="list">'+dups.map(d=>{const x=d.detail||{};return '<div class="item"><div class="d"><div class="t">'+esc(x.description||x.descricao||'Lançamento '+String(d.transaction_id||'').slice(0,8))+'</div><div class="s">'+(x.event_date?fmtD(x.event_date)+' · ':'')+'aberta '+haQuanto(d.created_at)+'</div></div><div class="a num">'+(x.amount!=null?brl(x.amount):'')+'</div></div>'}).join('')+'</div><p class="small muted">Lançamentos que parecem repetidos ficam fora das somas até serem conferidos.</p>':'<div class="panel small muted">Nenhuma duplicidade em aberto. O sistema confere a cada sincronização.</div>')+
    '<h2>Sincronizações</h2><div class="list">'+(jobs||[]).map(j=>{const sj=SYNC[j.status]||[String(j.status||'').toLowerCase(),'warn'];return '<div class="item"><div class="d"><div class="t">'+dataHora(j.started_at)+' · '+esc(ORIGEM[j.trigger]||j.trigger||'')+'</div><div class="s">'+j.tx_fetched+' lidos, '+j.tx_new+' novos, '+j.tx_updated+' alterados</div></div><span class="pill'+(sj[1]?' '+sj[1]:'')+'">'+esc(sj[0])+'</span></div>'}).join('')+'</div>'+
-   '<h2>Membros</h2><div class="list">'+(members||[]).map(m=>'<div class="item"'+(['owner','admin'].includes(S.member?.role)&&m.id!==S.member?.id?' onclick="gerarAcesso(\\''+m.id+'\\',\\''+esc(m.display_name)+'\\')"':'')+'><div class="d"><div class="t">'+esc(m.display_name)+' <span class="muted" style="font-weight:400">('+esc(PAPEL[m.role]||m.role)+')</span></div><div class="s">'+(m.email?esc(m.email):'sem e-mail')+'</div></div><span class="pill'+(m.auth_user_id?'':' warn')+'">'+(m.auth_user_id?'com login':'sem login')+'</span></div>').join('')+'</div>'+(['owner','admin'].includes(S.member?.role)?'<p class="small muted">Toque num membro para gerar um link de primeiro acesso ou de troca de senha (vale 1 hora, uso único).</p>':'')+
+   '<h2>Membros</h2><div class="list">'+(members||[]).map(m=>'<div class="item"'+(['owner','admin'].includes(S.member?.role)&&m.id!==S.member?.id?' data-id="'+esc(m.id)+'" data-n="'+esc(m.display_name)+'" onclick="gerarAcesso(this.dataset.id,this.dataset.n)"':'')+'><div class="d"><div class="t">'+esc(m.display_name)+' <span class="muted" style="font-weight:400">('+esc(PAPEL[m.role]||m.role)+')</span></div><div class="s">'+(m.email?esc(m.email):'sem e-mail')+'</div></div><span class="pill'+(m.auth_user_id?'':' warn')+'">'+(m.auth_user_id?'com login':'sem login')+'</span></div>').join('')+'</div>'+(['owner','admin'].includes(S.member?.role)?'<p class="small muted">Toque num membro para gerar um link de primeiro acesso ou de troca de senha (vale 1 hora, uso único).</p>':'')+
    '<h2>Notificações</h2><div class="panel" id="notif"><p class="small muted" style="margin:0">Verificando…</p></div>'+
    '<h2>Aparência</h2><div class="panel"><div class="seg" id="tema" role="group" aria-label="Tema">'+[['auto','Automático'],['claro','Claro'],['escuro','Escuro']].map(([k,l])=>'<button type="button" data-t="'+k+'" class="'+(tema===k?'on':'')+'" aria-pressed="'+(tema===k)+'" onclick="setTema(&quot;'+k+'&quot;)">'+l+'</button>').join('')+'</div><p class="small muted" style="margin:6px 0 0">Automático segue o celular ou o computador. A escolha fica guardada neste aparelho.</p></div>'+
    '<h2>Cadastros</h2><div class="list"><a class="item" href="#fixas" style="text-decoration:none;color:inherit"><div class="d"><div class="t">Contas fixas</div><div class="s">valores, financiamentos e histórico de reajustes</div></div><span class="muted">›</span></a></div>'+
-   '<h2>Documentação do projeto</h2><div class="list">'+((docs||[]).map(d=>'<div class="item" onclick="openDoc(\\''+esc(d.name)+'\\')"><div class="d"><div class="t">'+esc(d.name)+'</div><div class="s">atualizado '+new Date(d.updated_at).toLocaleDateString('pt-BR',{timeZone:TZ})+'</div></div><span class="muted">›</span></div>').join('')||'<div class="item">Nenhum documento ainda.</div>')+'</div>'+
+   '<h2>Documentação do projeto</h2><div class="list">'+((docs||[]).map(d=>'<div class="item" data-n="'+esc(d.name)+'" onclick="openDoc(this.dataset.n)"><div class="d"><div class="t">'+esc(d.name)+'</div><div class="s">atualizado '+new Date(d.updated_at).toLocaleDateString('pt-BR',{timeZone:TZ})+'</div></div><span class="muted">›</span></div>').join('')||'<div class="item">Nenhum documento ainda.</div>')+'</div>'+
    '<p class="small muted">App v${APP_VERSION} · '+esc(S.member?.display_name||'')+' · <a href="#" id="out">sair</a></p></div>';
   $('#out').onclick=(e)=>{e.preventDefault();sb.auth.signOut().then(()=>location.reload())};
   notifRefresh();
