@@ -4,7 +4,7 @@
 // Instalação: SUPABASE_URL e SUPABASE_ANON_KEY vêm do ambiente (Railway → Variables); o padrão é a instalação da família Abrão.
 const SUPABASE_URL = (Bun.env.SUPABASE_URL || "https://hrsinekxrfiphlhpoewp.supabase.co").replace(/\/+$/, "");
 const ANON_KEY = Bun.env.SUPABASE_ANON_KEY || "sb_publishable_MzeZ3Hg-lJRA6O_PZZiAIA_Y3dMoC4g";
-const APP_VERSION = "0.26.0";
+const APP_VERSION = "0.26.1";
 
 const MANIFEST = JSON.stringify({
   name: "Family Finance", short_name: "Family Finance", start_url: "/", scope: "/",
@@ -314,7 +314,7 @@ async function renderInicio(){const _rt=RT;
   const pctOf=(g)=>{const o=Number(BM[g.id]?.orcado||0);return o>0?Math.abs(g.total)/o:null};
   const gl=Object.values(groups).sort((a,b)=>{const pa=pctOf(a),pb=pctOf(b);if(pa==null&&pb==null)return a.total-b.total;if(pa==null)return 1;if(pb==null)return -1;return pb-pa});
   const st=(sync||[])[0];
-  const res=Number(cur.resultado)||0, pres=Number(pv.resultado);
+  const res=Number(cur.resultado)||0, pres=Number(pv.resultado); const invM=Number(cur.investimentos)||0;
   const gasto=Math.abs(Number(cur.despesas)||0);
   const mesCurto=(x)=>mesNome(x).split(' ')[0];
   const recIds=Object.keys(recG);
@@ -343,6 +343,9 @@ async function renderInicio(){const _rt=RT;
    '<div class="ledger">'+
      '<a class="lr" href="#lancamentos?month='+m+(recIds.length===1?'&group='+encodeURIComponent(recIds[0]):'')+'"><span class="k">Receitas'+(pv.month?'<small>'+esc(mesCurto(prev))+': '+nf(pv.receitas)+'</small>':'')+'</span><span class="v n pos">'+nf(cur.receitas)+'</span></a>'+
      '<button class="lr" type="button" onclick="document.getElementById(&quot;cats&quot;).scrollIntoView({behavior:&quot;smooth&quot;})"><span class="k">Gastos'+(isCur?' até hoje':' no mês')+'</span><span class="v n">'+nf(gasto)+'</span></button>'+
+     // investimentos (líquido do mês): fica fora de Receitas e de Sobrou/Faltou (resgate não é dinheiro novo); aparece à parte, com o efeito na conta
+     (Math.abs(invM)>=1?'<a class="lr" href="#lancamentos?month='+m+'&cat=investimentos"><span class="k">'+(invM>0?'Resgates de investimento':'Aplicado em investimentos')+'<small>líquido do mês; não entra em Receitas</small></span><span class="v n'+(invM>0?' pos':'')+'">'+nfs(invM)+'</span></a>'+
+      '<div class="lr" style="cursor:default"><span class="k">Na conta'+(isCur?' até hoje':'')+'<small>'+(invM>0?'usando '+brl0(invM)+' de investimentos':'depois de aplicar '+brl0(-invM))+'</small></span><span class="v n '+(res+invM>=0?'pos':'neg')+'">'+nfs(res+invM)+'</span></div>':'')+
      '<a class="lr" href="#cartao"><span class="k">Fatura aberta<small>'+fatS+'</small></span><span class="v n">'+(bill?nf(bill.total_lancamentos):'—')+'</span></a>'+
    '</div>'+
    (need.length?'<h2><span>Precisa de você</span><span>'+need.length+'</span></h2><div class="need">'+need.slice(0,NMAX).map(x=>'<a href="'+x[0]+'"><i class="dot"></i><span class="tx2">'+esc(x[1])+(x[3]?' <small>· '+esc(x[3])+'</small>':'')+'</span><b>'+esc(x[2])+'</b></a>').join('')+(need.length>NMAX?'<span class="small muted">e mais '+(need.length-NMAX)+'</span>':'')+'</div>':'')+

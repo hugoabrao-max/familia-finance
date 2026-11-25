@@ -101,7 +101,12 @@ function data(t, u) {
   await p.evaluate(() => scrollTo(0, 0)); reqs.length = 0;
   await p.locator('button[aria-label="Mês anterior"]').click(); await idle(p);
   ok('"Mês anterior" abre outubro', await p.locator('#mp').inputValue() === '2026-10' && (await p.locator('.top .mes .ml > span').textContent()) === 'outubro' && reqs.some(r => r.startsWith('v_category_month?') && r.includes('month=eq.2026-10-01')) && (await p.locator('.lead .l').textContent()).includes('Faltou em outubro'));
+  // v0.26.1: resgates ficam fora de Receitas/Faltou, em linha própria, com o efeito na conta
+  const ltx = await p.locator('.ledger').textContent();
+  ok('outubro: linha de resgates com o líquido', ltx.includes('Resgates de investimento') && ltx.includes('20.009') && await p.locator('.ledger a.lr', { hasText: 'Resgates' }).getAttribute('href') === '#lancamentos?month=2026-10&cat=investimentos', ltx);
+  ok('outubro: "Na conta" = resultado + resgates (−141), Faltou continua 20.149', ltx.includes('Na conta') && ltx.includes('−141') && /usando R\$\s20\.009 de investimentos/.test(ltx) && (await p.locator('.lead .big').textContent()).includes('20.149'), ltx);
   await p.locator('button[aria-label="Próximo mês"]').click(); await idle(p);
+  ok('novembro sem investimento: sem linhas de resgate/na conta', !(await p.locator('.ledger').textContent()).includes('Na conta'));
   ok('"Próximo mês" volta a novembro', await p.locator('#mp').inputValue() === '2026-11');
 
   // drill-down: categoria → detalhe → voltar
