@@ -1,8 +1,9 @@
-// Teste da Fase 2 (Início com cards + detalhe de categoria) com Supabase simulado.
+// Teste da Fase 2 (Início + detalhe de categoria; desde a v0.26 no visual de caderno: linhas em vez de cards) com Supabase simulado.
 // Uso: node fase2.test.js <url_app> <dir_saida>   (requer sb.mjs; ver README.md)
 const { chromium } = require('playwright');
 const FORA = []; // chamadas que escaparam do simulado
 const fs = require('fs');
+const fontes = require('./fontes');
 const APP = process.argv[2] || 'http://localhost:3999/';
 const OUT = process.argv[3] || '.';
 const SB = fs.readFileSync(__dirname + '/sb.mjs');
@@ -14,7 +15,8 @@ const cats = [...G.map(([id, name], i) => ({ id, name, parent_id: null, sort: i,
 function data(t, u) {
   const q = (k) => u.searchParams.get(k) || '';
   switch (t) {
-    case 'household_members': return [{ id: 'm1', role: 'owner', display_name: 'Hugo', auth_user_id: 'u1' }];
+    case 'household_members': return [{ id: 'm1', role: 'owner', display_name: 'Hugo', auth_user_id: 'u1', household_id: 'h1' }];
+    case 'households': return q('id') === 'eq.h1' ? [{ name: 'Família Abrão' }] : [];
     case 'categories': return cats;
     case 'accounts': return [{ id: 'a1', name: 'Conta', subtype: 'CHECKING_ACCOUNT', number: '1', balance: 20143.76 }, { id: 'a3', name: 'Poup', subtype: 'SAVINGS_ACCOUNT', number: '2', balance: 1235.36 }, { id: 'a2', name: 'Unique', subtype: 'CREDIT_CARD', number: '5430', balance: -33081.13 }];
     case 'v_month_summary': return [{ month: '2026-11-01', receitas: 30000, despesas: -7400, investimentos: 0, resultado: 22600, pendentes: 4, valor_pendente: 300 }, { month: '2026-10-01', receitas: 73182.87, despesas: -93332.25, investimentos: 20008.5, resultado: -20149.38, pendentes: 7, valor_pendente: 543.62 }];
@@ -29,7 +31,10 @@ function data(t, u) {
     case 'v_sync_status': return [{ provider_updated_at: '2026-11-12T01:07:34Z', consent_warning: false, last_job_status: 'SUCCESS' }];
     case 'v_alerts': return [{ kind: 'categoria_ritmo', severity: 'media', title: 'Lazer acima do ritmo', detail: 'x', ref_date: '2026-11-12' }, { kind: 'compra_grande', severity: 'baixa', title: 'Compra de R$ 1.305,84 em ASSAI ATACADISTA  LJ19', detail: 'Hugo', ref_date: '2026-11-10' }];
     case 'v_card_bills': return [{ closing_date: '2026-11-27', due_date: '2026-12-06', total_lancamentos: 33081.13, status: 'aberta' }];
-    case 'v_tx': return [
+    // outubro, para o ritmo (gastos por competência até o mesmo dia): até o dia 12 = 2.000 + 1.800 = 3.800
+    case 'v_tx': if (u.searchParams.get('month') === 'eq.2026-10-01' && u.searchParams.get('select') === 'amount,event_date') return [
+      { amount: -2000, event_date: '2026-10-05' }, { amount: -1800, event_date: '2026-10-12' }, { amount: -3000, event_date: '2026-10-20' }];
+      return [
       { id: 't1', event_date: '2026-11-10', amount: -300, description: 'BIG LAR', counterpart_name: 'Big Lar', category_id: 'mercado', category_name: 'Mercado' },
       { id: 't2', event_date: '2026-11-08', amount: -200, description: 'BIG LAR', counterpart_name: 'Big Lar', category_id: 'mercado', category_name: 'Mercado' },
       { id: 't3', event_date: '2026-11-07', amount: -150, description: 'IFD*CUPIM', counterpart_name: null, category_id: 'restaurantes', category_name: 'Restaurantes' },
@@ -39,8 +44,8 @@ function data(t, u) {
 }
 (async () => {
   const b = await chromium.launch(); const results = []; const ok = (n, c, x) => results.push([c ? 'OK ' : 'FALHA', n, x || '']);
-  async function page(vp, scheme) {
-    const ctx = await b.newContext({ viewport: vp, serviceWorkers: 'block', colorScheme: scheme || 'light' }); const p = await ctx.newPage();
+  async function page(vp, scheme, dsf) {
+    const ctx = await b.newContext({ viewport: vp, serviceWorkers: 'block', colorScheme: scheme || 'light', deviceScaleFactor: dsf || 1 }); const p = await ctx.newPage();
     const errs = []; p.on('pageerror', e => errs.push(e.message));
     await p.clock.setFixedTime(new Date('2026-11-12T15:00:00-04:00'));
     // barra tudo que não for simulado abaixo (nada chega ao Supabase real); rotas registradas depois têm prioridade
@@ -54,6 +59,7 @@ function data(t, u) {
       if (r.request().method() === 'HEAD') return r.fulfill({ status: 200, headers: { 'content-range': '0-3/4', 'access-control-expose-headers': 'content-range', 'access-control-allow-origin': '*' }, body: '' });
       const rows = data(t, u); return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(rows) });
     });
+    if (dsf) await fontes(p);
     await p.addInitScript(() => { const exp = Math.floor(Date.now() / 1000) + 86400 * 365; localStorage.setItem('sb-hrsinekxrfiphlhpoewp-auth-token', JSON.stringify({ access_token: 'a.' + btoa(JSON.stringify({ sub: 'u1', exp })) + '.x', token_type: 'bearer', expires_at: exp, refresh_token: 'r', user: { id: 'u1', aud: 'authenticated' } })) });
     return { ctx, p, errs };
   }
@@ -62,20 +68,41 @@ function data(t, u) {
   let { ctx, p, errs } = await page({ width: 390, height: 844 });
   await p.goto(APP + '#inicio'); await idle(p);
   await p.screenshot({ path: OUT + '/f2-inicio.png', fullPage: true });
-  ok('card "Sobrou até hoje (dia 12)"', (await p.locator('.card.sobra .k').textContent()).includes('Sobrou até hoje (dia 12)'));
-  ok('Sobrou mostra o valor e o mês anterior', (await p.locator('.card.sobra').textContent()).includes('22.600') && (await p.locator('.card.sobra .s').textContent()).includes('Em outubro faltaram'));
-  ok('três cards: gastos, receitas, fatura', await p.locator('.cards3 .card').count() === 3);
-  ok('fatura aberta: vence em 24 dias', (await p.locator('.cards3 .card').nth(2).textContent()).includes('vence em 24 dias'));
+  const nb = (x) => (x || '').replace(/\u00a0/g, ' ');
+  ok('topo: nome da família e mês com setas', (await p.locator('.top .fam').textContent()) === 'Família Abrão' && await p.locator('#mp').inputValue() === '2026-11' && (await p.locator('.top .mes .ml > span').textContent()) === 'novembro');
+  ok('destaque "Sobrou até hoje, dia 12"', (await p.locator('.lead .l').textContent()).includes('Sobrou até hoje, dia 12'));
+  ok('Sobrou mostra o valor e o mês anterior', nb(await p.locator('.lead .big').textContent()) === 'R$ 22.600' && (await p.locator('.lead .s').textContent()).includes('Em outubro faltaram'));
+  ok('um só número grande na tela', await p.locator('#app .big').count() === 1);
+  const led = await p.$$eval('.ledger .lr', es => es.map(e => [e.querySelector('.k').firstChild.textContent, e.querySelector('.v').textContent]));
+  ok('linhas: receitas, gastos, fatura (sem "R$" repetido)', JSON.stringify(led) === JSON.stringify([['Receitas', '30.000'], ['Gastos até hoje', '7.400'], ['Fatura aberta', '33.081']]), JSON.stringify(led));
+  ok('linhas fecham com o destaque (30.000 − 7.400 = 22.600)', 30000 - 7400 === 22600 && led[1][1] === '7.400');
+  ok('fatura aberta: vence 06/12', (await p.locator('.ledger .lr').nth(2).textContent()).includes('vence 06/12'));
   const need = await p.locator('.need').textContent();
-  ok('"Precisa de você" junta pendentes, fixas e alertas', need.includes('4 lançamentos sem categoria') && need.includes('4 contas fixas sugeridas') && need.includes('Lazer acima do ritmo'), JSON.stringify(need));
+  ok('"Precisa de você" junta pendentes, fixas e alertas', need.includes('4 lançamentos sem categoria') && need.includes('4 contas fixas para confirmar') && need.includes('Lazer acima do ritmo') && (await p.locator('h2', { hasText: 'Precisa de você' }).textContent()).includes('4'), JSON.stringify(need));
+  ok('pendentes: ação "revisar" leva à Revisão', await p.locator('.need a', { hasText: 'sem categoria' }).getAttribute('href') === '#revisao' && (await p.locator('.need a', { hasText: 'sem categoria' }).locator('b').textContent()) === 'revisar');
   ok('alerta de categoria leva ao detalhe', await p.locator('.need a', { hasText: 'Lazer acima do ritmo' }).getAttribute('href') === '#categoria?id=lazer&month=2026-11');
   ok('alerta de compra grande leva à compra', (await p.locator('.need a', { hasText: 'ASSAI' }).getAttribute('href')).startsWith('#lancamentos?month=2026-11&search=ASSAI'));
+  // ritmo: compara com o mês anterior até o mesmo dia (outubro até o dia 12 = 3.800; o dia 20 fica de fora); gasto 7.400 → 3.600 acima
+  const rit = nb(await p.locator('.ritmo').textContent());
+  ok('ritmo: barra única "Gasto × outubro até o dia 12"', rit.includes('Gasto 7.400') && rit.includes('outubro até o dia 12 3.800') && rit.includes('R$ 3.600 acima de outubro no mesmo dia') && await p.locator('svg.chart').count() === 0, rit);
+  ok('ritmo: traço em outubro (3.800 de 7.400 = 51,4%) e gasto em 100%', Math.abs(parseFloat(await p.$eval('.ritmo .bar b', e => e.style.left)) - 51.4) < 0.05 && parseFloat(await p.$eval('.ritmo .bar i', e => e.style.width)) === 100);
+  ok('cabeçalho do ritmo: dia 12 de 30', (await p.locator('h2', { hasText: 'Ritmo do mês' }).textContent()).includes('dia 12 de 30'));
   const order = await p.$$eval('#cats + .list a.item .t', es => es.map(e => e.textContent.trim()));
   ok('categorias: mais estouradas primeiro, sem orçamento no fim', JSON.stringify(order) === JSON.stringify(['Lazer', 'Alimentação', 'Moradia', 'Saúde']), order.join(', '));
-  const lz = (await p.locator('#cats + .list a.item').first().textContent()).replace(/\u00a0/g, ' '); ok('Lazer mostra "passou R$ 800"', lz.includes('passou R$ 800'), JSON.stringify(lz));
-  ok('receitas leva aos lançamentos do grupo de receita', await p.locator('.cards3 a.card').first().getAttribute('href') === '#lancamentos?month=2026-11&group=receita');
-  await p.locator('.cards3 button.card').click(); await p.waitForTimeout(600);
-  const ct = await p.evaluate(() => [document.getElementById('cats').getBoundingClientRect().top, scrollY, document.documentElement.scrollHeight - innerHeight]); ok('card Gastos rola até as categorias', Math.abs(ct[0]) < 80 || ct[1] >= ct[2] - 2, JSON.stringify(ct));
+  const lz = nb(await p.locator('#cats + .list a.item').first().textContent()); ok('Lazer mostra "passou R$ 800 de 1.000"', lz.includes('passou R$ 800 de 1.000'), JSON.stringify(lz));
+  ok('explicação longa saiu da tela e virou "?"', !(await p.locator('#app').textContent()).includes('Mais estouradas primeiro') && await p.locator('#cats .ajuda').count() === 1);
+  await p.locator('#cats .ajuda').click(); await p.waitForTimeout(100);
+  ok('"?" mostra a explicação', (await p.locator('#toast').textContent()).includes('Mais estouradas primeiro'));
+  ok('receitas leva aos lançamentos do grupo de receita', await p.locator('.ledger a.lr').first().getAttribute('href') === '#lancamentos?month=2026-11&group=receita');
+  await p.locator('.ledger button.lr').click(); await p.waitForTimeout(600);
+  const ct = await p.evaluate(() => [document.getElementById('cats').getBoundingClientRect().top, scrollY, document.documentElement.scrollHeight - innerHeight]); ok('linha Gastos rola até as categorias', Math.abs(ct[0]) < 80 || ct[1] >= ct[2] - 2, JSON.stringify(ct));
+  // setas do mês
+  ok('mês atual: "Próximo mês" desativado', await p.locator('button[aria-label="Próximo mês"]').isDisabled());
+  await p.evaluate(() => scrollTo(0, 0)); reqs.length = 0;
+  await p.locator('button[aria-label="Mês anterior"]').click(); await idle(p);
+  ok('"Mês anterior" abre outubro', await p.locator('#mp').inputValue() === '2026-10' && (await p.locator('.top .mes .ml > span').textContent()) === 'outubro' && reqs.some(r => r.startsWith('v_category_month?') && r.includes('month=eq.2026-10-01')) && (await p.locator('.lead .l').textContent()).includes('Faltou em outubro'));
+  await p.locator('button[aria-label="Próximo mês"]').click(); await idle(p);
+  ok('"Próximo mês" volta a novembro', await p.locator('#mp').inputValue() === '2026-11');
 
   // drill-down: categoria → detalhe → voltar
   await p.evaluate(() => scrollTo(0, 500)); await p.waitForTimeout(80); const y0 = await p.evaluate(() => scrollY);
@@ -103,10 +130,17 @@ function data(t, u) {
   // tema escuro e notebook
   ({ ctx, p, errs } = await page({ width: 390, height: 844 }, 'dark'));
   await p.goto(APP + '#inicio'); await idle(p);
-  const bg = await p.$eval('.need', e => getComputedStyle(e).backgroundColor);
-  ok('tema escuro: "Precisa de você" com fundo escuro', bg === 'rgb(58, 48, 22)', bg);
+  const bg = await p.evaluate(() => [getComputedStyle(document.body).backgroundColor, getComputedStyle(document.querySelector('.need a')).color, getComputedStyle(document.querySelector('.lead .big')).color]);
+  ok('tema escuro: papel escuro, texto claro e destaque verde claro', JSON.stringify(bg) === JSON.stringify(['rgb(21, 23, 19)', 'rgb(236, 234, 225)', 'rgb(141, 194, 156)']), JSON.stringify(bg));
   await p.screenshot({ path: OUT + '/f2-escuro.png' });
   await ctx.close();
+  for (const sc of ['light', 'dark']) { // capturas do redesenho (390×844, escala 2)
+    ({ ctx, p, errs } = await page({ width: 390, height: 844 }, sc, 2));
+    await p.goto(APP + '#inicio'); await idle(p); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(200);
+    await p.setViewportSize({ width: 390, height: Math.max(844, await p.evaluate(() => document.documentElement.scrollHeight)) }); await p.waitForTimeout(100);
+    await p.screenshot({ path: OUT + '/redesenho-inicio-' + (sc === 'light' ? 'claro' : 'escuro') + '.png' });
+    ok('sem erros de JS (captura ' + sc + ')', errs.length === 0, errs.join(' | ')); await ctx.close();
+  }
   ({ ctx, p, errs } = await page({ width: 1366, height: 900 }));
   await p.goto(APP + '#inicio'); await idle(p); await p.screenshot({ path: OUT + '/f2-desk.png' });
   await p.goto(APP + '#categoria?id=alimentacao&month=2026-11'); await idle(p);

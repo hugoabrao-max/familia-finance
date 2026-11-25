@@ -65,6 +65,7 @@ function data(t, u) {
   ok('dez/26: teto R$ 30.414, parcelas R$ 9.082, livre R$ 21.331', painel.includes('dez/26') && painel.includes('teto R$ 30.414') && painel.includes('livre R$ 21.331'), painel);
   await p.goto(APP + '#inicio'); await idle(p);
   ok('Início avisa que passou do teto (automático)', nb(await p.locator('.need').textContent()).includes('Fatura do cartão passou do teto em R$ 7.062'));
+  ok('Início: linha da fatura com teto e quanto passou', nb(await p.locator('.ledger a.lr[href="#cartao"]').textContent()).includes('teto 26.371, passou 7.062'), nb(await p.locator('.ledger a.lr[href="#cartao"]').textContent()));
   await p.goto(APP + '#cartao'); await idle(p);
   await p.locator('.card.destaque a', { hasText: 'alterar' }).click(); await p.waitForTimeout(150);
   const sh = nb(await p.locator('#sheetBody').textContent());
@@ -76,7 +77,7 @@ function data(t, u) {
   ok('fixado: livre R$ 6.567 e R$ 597/dia', card.includes('(fixado)') && card.includes('R$ 6.567') && card.includes('cerca de R$ 597 por dia nos 11 dias'), card);
   ok('fixado: informa quanto seria o automático', nb(await p.locator('.panel', { hasText: 'Próximas faturas' }).textContent()).includes('Teto fixado por você em R$ 40.000 (o automático seria R$ 26.371)'));
   await p.goto(APP + '#inicio'); await idle(p);
-  ok('Início com teto fixado: "livre R$ 6.567 do teto"', nb(await p.locator('.cards3 a.card[href="#cartao"]').textContent()).includes('livre R$ 6.567 do teto'));
+  ok('Início com teto fixado: "teto 40.000, livre 6.567" na linha da fatura', nb(await p.locator('.ledger a.lr[href="#cartao"]').textContent()).includes('teto 40.000, livre 6.567'), nb(await p.locator('.ledger a.lr[href="#cartao"]').textContent()));
   await p.goto(APP + '#cartao'); await idle(p);
   writes.length = 0; await p.locator('.card.destaque a', { hasText: 'alterar' }).click(); await p.waitForTimeout(150);
   await p.locator('#sheetBody button', { hasText: 'Voltar ao automático' }).click(); await idle(p);

@@ -92,7 +92,7 @@ function data(table, url) {
   ok('Esc fecha a janela', await p.locator('#sheet.on').count() === 0);
   await p.locator('.item', { hasText: 'Big Lar' }).click(); await p.waitForTimeout(100);
   await p.goBack(); await p.waitForTimeout(200);
-  ok('Voltar (Android) fecha a janela e fica na tela', (await p.locator('#sheet.on').count()) === 0 && (await p.locator('h1', { hasText: 'Lançamentos' }).count()) === 1);
+  ok('Voltar (Android) fecha a janela e fica na tela', (await p.locator('#sheet.on').count()) === 0 && (await p.locator('h1', { hasText: 'Extrato' }).count()) === 1);
   await p.locator('.item', { hasText: 'Big Lar' }).click(); await p.waitForTimeout(100);
   await p.selectOption('#cx', 'g3'); calls.length = 0;
   await p.getByRole('button', { name: 'Salvar categoria' }).click(); await p.waitForTimeout(300);
@@ -101,7 +101,7 @@ function data(table, url) {
   await p.locator('#toast button', { hasText: 'Desfazer' }).click(); await p.waitForTimeout(300);
   const undo = calls.filter(c => c.fn === 'set_transaction_category');
   ok('Desfazer restaura a categoria anterior sem criar regra', undo.length === 2 && undo[1].body.p_category === 'mercado' && undo[1].body.p_create_rule === false, JSON.stringify(undo.map(u => u.body)));
-  ok('tela continua em Lançamentos após salvar', (await p.locator('h1', { hasText: 'Lançamentos' }).count()) === 1 && (await p.locator('#sheet.on').count()) === 0);
+  ok('tela continua no Extrato após salvar', (await p.locator('h1', { hasText: 'Extrato' }).count()) === 1 && (await p.locator('#sheet.on').count()) === 0);
 
   // 3) Fechar o mês: confirmação própria, ressalva obrigatória
   await p.evaluate(() => { location.hash = 'inicio' }); await idle(p);

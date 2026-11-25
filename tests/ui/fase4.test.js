@@ -1,8 +1,9 @@
-// Teste da Fase 4 (Plano em 4 cards; Orçamento com "só este mês"/"deste mês em diante"; Contas fixas com financiamentos; Reservas) com Supabase simulado.
+// Teste da Fase 4 (Plano em 4 linhas — eram cards até a v0.25; Orçamento com "só este mês"/"deste mês em diante"; Contas fixas com financiamentos; Reservas) com Supabase simulado.
 // Uso: node fase4.test.js <url_app> <dir_saida>   (requer sb.mjs; ver README.md)
 const { chromium } = require('playwright');
 const FORA = []; // chamadas que escaparam do simulado
 const fs = require('fs');
+const fontes = require('./fontes');
 const APP = process.argv[2] || 'http://localhost:3999/';
 const OUT = process.argv[3] || '.';
 const SB = fs.readFileSync(__dirname + '/sb.mjs');
@@ -37,8 +38,8 @@ function data(t, u) {
 }
 (async () => {
   const b = await chromium.launch(); const results = []; const ok = (n, c, x) => results.push([c ? 'OK ' : 'FALHA', n, x || '']);
-  async function page(vp, scheme) {
-    const ctx = await b.newContext({ viewport: vp, serviceWorkers: 'block', colorScheme: scheme || 'light' }); const p = await ctx.newPage();
+  async function page(vp, scheme, dsf) {
+    const ctx = await b.newContext({ viewport: vp, serviceWorkers: 'block', colorScheme: scheme || 'light', deviceScaleFactor: dsf || 1 }); const p = await ctx.newPage();
     const errs = []; p.on('pageerror', e => errs.push(e.message));
     await p.clock.setFixedTime(new Date('2026-11-12T15:00:00-04:00'));
     // barra tudo que não for simulado abaixo (nada chega ao Supabase real); rotas registradas depois têm prioridade
@@ -57,6 +58,7 @@ function data(t, u) {
       if (!single && rows && !Array.isArray(rows)) return r.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: JSON.stringify([rows]) });
       return r.fulfill({ status: 200, headers: cors, contentType: 'application/json', body: JSON.stringify(rows) });
     });
+    if (dsf) await fontes(p);
     await p.addInitScript(() => { const exp = Math.floor(Date.now() / 1000) + 86400 * 365; localStorage.setItem('sb-hrsinekxrfiphlhpoewp-auth-token', JSON.stringify({ access_token: 'a.' + btoa(JSON.stringify({ sub: 'u1', exp })) + '.x', token_type: 'bearer', expires_at: exp, refresh_token: 'r', user: { id: 'u1', aud: 'authenticated' } })) });
     return { ctx, p, errs };
   }
@@ -66,23 +68,25 @@ function data(t, u) {
   let { ctx, p, errs } = await page({ width: 390, height: 844 });
   await p.goto(APP + '#plano'); await idle(p);
   await p.screenshot({ path: OUT + '/f4-plano.png', fullPage: true });
-  const cards = await p.$$eval('.cards2 a.card', es => es.map(e => [e.getAttribute('href'), e.textContent.replace(/ /g, ' ')]));
-  ok('Plano: 4 cards na ordem', JSON.stringify(cards.map(c => c[0])) === JSON.stringify(['#orcamento?month=2026-11', '#meta', '#fixas', '#simular']), cards.map(c => c[0]).join(' '));
+  const cards = await p.$$eval('.plan a.pr', es => es.map(e => [e.getAttribute('href'), e.textContent.replace(/\u00a0/g, ' ')]));
+  ok('Plano: 4 linhas na ordem, com ação à direita', JSON.stringify(await p.$$eval('.plan a.pr .go', es => es.map(e => e.textContent))) === JSON.stringify(['abrir', 'ajustar', 'ver todas', 'simular']) && JSON.stringify(cards.map(c => c[0])) === JSON.stringify(['#orcamento?month=2026-11', '#meta', '#fixas', '#simular']), cards.map(c => c[0]).join(' '));
   // restam = orçado 8000 − gasto 5500 − fixas pendentes 1500 = 1000
-  ok('Orçamento: "restam R$ 1.000" e gasto de orçado', cards[0][1].includes('R$ 1.000restam · ') && cards[0][1].includes('gasto R$ 5.500 de R$ 8.000') && cards[0][1].includes('R$ 1.800 comprometido'), cards[0][1]);
+  ok('Orçamento: "R$ 1.000 restam" e "gasto 5.500 + comprometido 1.800 de 8.000"', cards[0][1].includes('R$ 1.000restam') && cards[0][1].includes('gasto 5.500 + comprometido 1.800 de 8.000'), cards[0][1]);
+  ok('Orçamento: barra com gasto + comprometido (7.300 de 8.000) e traço do ritmo (12/30)', await p.$eval('.plan a.pr .bar i', e => e.style.width) === '91.3%' && await p.$eval('.plan a.pr .bar b', e => e.style.left) === '40%');
   ok('Meta de sobra: meta e o que o orçamento deixa', cards[1][1].includes('R$ 5.000/mês') && cards[1][1].includes('deixa R$ 22.000'), cards[1][1]);
-  ok('Contas fixas: total, a pagar e sugeridas', cards[2][1].includes('R$ 4.700/mês') && cards[2][1].includes('a pagar em nov/26: R$ 1.500') && cards[2][1].includes('2 para conferir'), cards[2][1]);
+  ok('Contas fixas: total, a pagar e sugeridas', cards[2][1].includes('R$ 4.700/mês') && cards[2][1].includes('a pagar em novembro: R$ 1.500') && cards[2][1].includes('2 para conferir'), cards[2][1]);
   ok('Simular: cenários salvos', cards[3][1].includes('3 cenários salvos'), cards[3][1]);
-  ok('Reservas separadas, com "+ Nova reserva"', (await p.locator('h2', { hasText: 'Reservas' }).count()) === 1 && (await p.locator('text=+ Nova reserva').count()) === 1 && (await p.locator('text=guardar R$ 500/mês').count()) === 1);
+  ok('Reservas separadas, com "+ Nova reserva"', (await p.locator('h2', { hasText: 'Reservas' }).count()) === 1 && (await p.locator('text=+ Nova reserva').count()) === 1 && (await p.locator('text=guardar R$ 500 por mês').count()) === 1 && (await p.locator('.gl .v').textContent()).replace(/\u00a0/g, ' ') === '4.000 de 10.000');
+  ok('sem aviso longo de "Projeções e propostas"', !(await p.locator('#app').textContent()).includes('Projeções e propostas'));
   ok('sem "Compromissos mensais" no Plano', (await p.locator('text=Compromissos mensais').count()) === 0);
-  ok('Patrimônio discreto (fechado)', !(await p.locator('details.pat').evaluate(e => e.open)) && nb(await p.locator('details.pat summary').textContent()).includes('R$ 276.200'));
+  ok('Patrimônio discreto (fechado)', !(await p.locator('details.pat').evaluate(e => e.open)) && nb(await p.locator('details.pat summary').textContent()).includes('Bens menos dívidas') && nb(await p.locator('details.pat summary').textContent()).includes('276.200'));
   await p.locator('details.pat summary').click(); ok('Patrimônio abre o detalhe', (await p.locator('details.pat', { hasText: 'Imóveis' }).isVisible()));
   await p.locator('text=+ Nova reserva').click(); await p.waitForTimeout(150);
   ok('nova reserva: janela com "Quanto guardar por mês"', (await p.locator('#sheetBody', { hasText: 'Nova reserva' }).count()) === 1 && (await p.locator('#sheetBody', { hasText: 'Quanto guardar por mês' }).count()) === 1);
   await p.keyboard.press('Escape');
 
   // Orçamento
-  await p.evaluate(() => scrollTo(0, 0)); await p.locator('.cards2 a.card').first().click(); await idle(p);
+  await p.evaluate(() => scrollTo(0, 0)); await p.locator('.plan a.pr').first().click(); await idle(p);
   await p.screenshot({ path: OUT + '/f4-orcamento.png', fullPage: true });
   ok('Orçamento abre com "‹ Plano"', (await p.locator('h1').first().textContent()).trim() === 'Orçamento' && (await p.locator('a.crumb').textContent()).includes('Plano'));
   const rs = await p.$$eval('.list .item .a', es => es.map(e => e.textContent.replace(/ /g, ' ')));
@@ -119,6 +123,13 @@ function data(t, u) {
   ok('sem erros de JS (celular)', errs.length === 0, errs.join(' | '));
   await ctx.close();
 
+  for (const sc of ['light', 'dark']) { // capturas do redesenho (390×844, escala 2)
+    ({ ctx, p, errs } = await page({ width: 390, height: 844 }, sc, 2));
+    await p.goto(APP + '#plano'); await idle(p); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(200);
+    await p.setViewportSize({ width: 390, height: Math.max(844, await p.evaluate(() => document.documentElement.scrollHeight)) }); await p.waitForTimeout(100);
+    await p.screenshot({ path: OUT + '/redesenho-plano-' + (sc === 'light' ? 'claro' : 'escuro') + '.png' });
+    ok('sem erros de JS (captura ' + sc + ')', errs.length === 0, errs.join(' | ')); await ctx.close();
+  }
   ({ ctx, p, errs } = await page({ width: 1366, height: 900 }, 'dark'));
   await p.goto(APP + '#plano'); await idle(p); await p.screenshot({ path: OUT + '/f4-plano-desk-escuro.png' });
   await p.goto(APP + '#orcamento?month=2026-12'); await idle(p);

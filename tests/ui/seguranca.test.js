@@ -81,10 +81,11 @@ function data(t, u) {
   { const [w, imgs] = await pwn(); ok('Início depois dos links continua limpo', w === undefined && imgs === 0, 'pwn=' + w); }
   await p.goto(APP + '#lancamentos'); await idle();
   const mp = await p.locator('#mp').inputValue().catch(() => '');
-  ok('mês do seletor continua válido (aaaa-mm)', /^[0-9]{4}-[0-9]{2}$/.test(mp), mp);
+  const rot = (await p.locator('.mes .ml > span').textContent().catch(() => '')).trim();
+  ok('mês do seletor continua válido (aaaa-mm), no seletor com setas', /^[0-9]{4}-[0-9]{2}$/.test(mp) && /^(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)( de [0-9]{4})?$/.test(rot) && (await p.locator('.mes button[aria-label="Mês anterior"]').count()) === 1, mp + ' / ' + rot);
   // 3) mês válido pelo link continua funcionando
   await p.goto(APP + '#lancamentos?month=2026-10'); await idle();
-  ok('link com mês válido continua funcionando', (await p.locator('#mp').inputValue().catch(() => '')) === '2026-10');
+  ok('link com mês válido continua funcionando', (await p.locator('#mp').inputValue().catch(() => '')) === '2026-10' && (await p.locator('.mes .ml > span').textContent()).trim() === 'outubro');
 
   // 4) nomes vindos do banco com aspas e código (membro e documento)
   await p.goto(APP + '#operacao'); await idle();
