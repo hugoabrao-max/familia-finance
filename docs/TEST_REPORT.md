@@ -1,3 +1,4 @@
+25/11/2026 v0.26.1 publicada: Railway web SUCCESS (commit 85966a6), /health 0.26.1, página servida md5 56aea213… = local testado.
 25/11/2026 v0.26.1 (resgates no Início) — 9 baterias tests/ui, 226 verificações ok; fase2 +3: outubro simulado mostra resgates 20.009 com link para o extrato da categoria investimentos, 'Na conta' −141 'usando R$ 20.009 de investimentos' e Faltou continua 20.149; mês sem investimento não mostra as linhas.
 25/11/2026 v0.26.0 (redesenho) VALIDADO no celular do Hugo: "ficou bom".
 25/11/2026 1º backup com backup.ts v2 (09:04 UTC = 05:04 Cuiabá): SUCCESS, 1.501.306 bytes, 'verificado por releitura', sem push_subscriptions (export v10); log do Railway 'apagados 0 registrado true' (retenção não apagou nada: 20 backups ok, mínimo 30). Aviso de backup atrasado não aparece.
